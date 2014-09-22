@@ -40,15 +40,16 @@ int main (int argc, char * argv[]){
     }
 
     //read and parse the torrent file here
-	
+	parseTorrentFile(&bt_args);
 
     if (bt_args.verbose) {
         // print out the torrent file arguments here
     }
 
     // main client loop
-    printf("Starting Main Loop\n");
-    while(1){
+    //printf("Starting Main Loop\n");
+    /*
+	while(1){
 
         //try to accept incoming connection from new peer
              
@@ -67,6 +68,7 @@ int main (int argc, char * argv[]){
         // update peers, 
 
     }
-
+	*/
+	
     return 0;
 }

@@ -12,7 +12,7 @@ $(BIN): $(OBJ)
 	$(CC) $(CPFLAGS) $(LDFLAGS) -o $(OBJ) $(BIN)
 
 %.o:%.c
-	$(CC) -c $(CPFLAGS) -o $@ $<  
+	$(CC) -c $(CPFLAGS) -o $@ $<
 
 $(SRC):
 

@@ -28,7 +28,14 @@ void usage(FILE *file);
  * ERRORS: Will exit on various errors
  *
  **/
-
 void parse_args(bt_args_t *bt_args, int argc,  char **argv);
+
+/**
+ * parseTorrentFile(bt_args_t *bt_args) -> void
+ * 
+ * parse *.torrent file to populate values related to the 'info' part of of the torrent file
+ * 
+ */
+void parseTorrentFile(bt_args_t *bt_args);
 
 #endif

@@ -16,7 +16,7 @@
  **/
 
 void usage(FILE *file) {
-    if(file == NULL){
+    if(file == NULL) {
         file = stdout;
     }
 
@@ -176,7 +176,7 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     argv += optind;
 
     if(argc == 0){
-        fprintf(stderr,"ERROR: Require torrent file\n");
+        fprintf(stderr,"ERROR: Remember we need a torrent file? Please try again.\n");
         usage(stderr);
         exit(1);
     }
@@ -185,4 +185,40 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     strncpy(bt_args->torrent_file, argv[0], FILE_NAME_MAX);
 
     return;
+}
+
+/**
+ * parseTorrentFile(bt_args_t *bt_args) -> void
+ * 
+ * parse *.torrent file to populate values related to the 'info' part of of the torrent file
+ * 
+ */
+void parseTorrentFile(bt_args_t *bt_args) {
+	/*
+	bt_args->torrent_file	// .torrent file to read from
+	bt_args->save_file	// the filename to save to
+	bt_args->bt_info.piece_length	// size of a piece for the file in bytes (power of 2)
+	bt_args->bt_info.length	// length of file to be downloaded
+	bt_args->bt_info.num_pieces	// number of pieces file is divided into
+	bt_args->bt_info.piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file
+	*/
+	
+	FILE *fp = fopen(bt_args->torrent_file, "r");	// open .torrent file in read only mode
+	if (fp == NULL) {
+		fprintf(stderr, "ERROR: Could not read file: '%s'\n", bt_args->torrent_file);
+		exit(1);
+	}
+	
+	// figure out size of file in bytes
+	fseek(fp, 0, SEEK_END);	// set file pointer to end of file
+	long torrentFileSize = ftell(fp);	// store file size
+	rewind(fp);	// set file pointer back to beginning of file
+	
+	// read the entire file and store it in a string
+	char *fileContents;		// string to store contents of file in
+	fileContents = malloc( torrentFileSize * sizeof(char) + 1 );	// allocate memory equivalent to number of bytes in file
+	fread(fileContents, sizeof(char), torrentFileSize, fp);
+	fileContents[torrentFileSize] = '\0';	// null terminating the string
+	
+	char delim[] = ":";	// set delimiters required
 }

@@ -57,11 +57,11 @@ typedef struct peer {
  * parse .torrent file to fill contents of bt_info_t struct
  */
 typedef struct {
-    char name[FILE_NAME_MAX]; //name of file
-    int piece_length; //number of bytes in each piece
-    int length; //length of the file in bytes
-    int num_pieces; //number of pieces, computed based on above two values
-    char **piece_hashes; //pointer to 20 byte data buffers containing the sha1sum of each of the pieces
+    char name[FILE_NAME_MAX];	// name of file
+    int piece_length;	// number of bytes in each piece
+    int length;	// length of the file to be downloaded in bytes
+    int num_pieces;	//number of pieces, computed based on above two values
+    char **piece_hashes;	// pointer to 20 byte data buffers containing the sha1sum of each of the pieces
 } bt_info_t;
 
 //holds all the arguments and state information for running the bt client
@@ -70,7 +70,7 @@ typedef struct {
     char save_file[FILE_NAME_MAX]; //the filename to save to
     FILE *f_save;
     char log_file[FILE_NAME_MAX]; //the log file
-    char torrent_file[FILE_NAME_MAX]; // *	.torrent file
+    char torrent_file[FILE_NAME_MAX]; // *.torrent file
     peer_t *peers[MAX_CONNECTIONS]; // array of peer_t pointers
     unsigned int id; // this bt_client's id
     int sockets[MAX_CONNECTIONS]; // Array of possible sockets
