@@ -2,16 +2,14 @@ CC=gcc
 CPFLAGS=-g -Wall
 LDFLAGS= -lcrypto
 
-
-SRC= bt_client.c bt_lib.c bt_setup.c 
+SRC= bt_client.c bt_lib.c bt_setup.c
 OBJ=$(SRC:.c=.o)
 BIN=bt_client
 
 all: $(BIN)
 
 $(BIN): $(OBJ)
-	$(CC) $(CPFLAGS) $(LDFLAGS) -o $(BIN) $(OBJ) 
-
+	$(CC) $(CPFLAGS) $(LDFLAGS) -o $(OBJ) $(BIN)
 
 %.o:%.c
 	$(CC) -c $(CPFLAGS) -o $@ $<  

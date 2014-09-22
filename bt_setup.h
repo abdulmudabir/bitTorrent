@@ -17,7 +17,7 @@
  *
  * ERRORS: Will exit on various errors
  **/
-void usage(FILE * file);
+void usage(FILE *file);
 
 /**
  * pars_args(bt_args_t *bt_args, int argc, char *argv[]) -> void

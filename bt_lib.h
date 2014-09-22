@@ -41,21 +41,20 @@
 #define BT_PIECE 7
 #define BT_CANCEL 8
 
-/* size (in bytes) of id field for peers */
+/* size (in bytes) of id field for peers (20-byte SHA1 digest denoting peer ID) */
 #define ID_SIZE 20
 
 // holds information about a peer
 typedef struct peer {
-    unsigned char id[ID_SIZE]; // the peer id (a hex string)
-    unsigned short port; // the port to connect n
-    struct sockaddr_in sockaddr; //sockaddr for peer
-    int choked; //peer choked?
-    int interested; //peer interested?
+    unsigned char id[ID_SIZE];	// the peer id (a hex string)
+    unsigned short port;	// the port to connect
+    struct sockaddr_in sockaddr;	//sockaddr for peer
+    int choked; // peer choked?
+    int interested;	// peer interested?
 } peer_t;
 
-
 /* holds information about a torrent file
- * need to parse .torrent file to fill contents of this struct
+ * parse .torrent file to fill contents of bt_info_t struct
  */
 typedef struct {
     char name[FILE_NAME_MAX]; //name of file
@@ -65,13 +64,13 @@ typedef struct {
     char **piece_hashes; //pointer to 20 byte data buffers containing the sha1sum of each of the pieces
 } bt_info_t;
 
-//holds all the agurments and state for running the bt client
+//holds all the arguments and state information for running the bt client
 typedef struct {
     int verbose; //verbose level
     char save_file[FILE_NAME_MAX]; //the filename to save to
     FILE *f_save;
     char log_file[FILE_NAME_MAX]; //the log file
-    char torrent_file[FILE_NAME_MAX]; // *.torrent file
+    char torrent_file[FILE_NAME_MAX]; // *	.torrent file
     peer_t *peers[MAX_CONNECTIONS]; // array of peer_t pointers
     unsigned int id; // this bt_client's id
     int sockets[MAX_CONNECTIONS]; // Array of possible sockets
@@ -83,7 +82,7 @@ typedef struct {
 						  * };
 						  */
     /* set once torrent is parsed */
-    bt_info_t *bt_info; // lthe parsed info for this torrent
+    bt_info_t *bt_info; // the parsed info for this torrent
 } bt_args_t;
 
 /**

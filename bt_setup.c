@@ -1,6 +1,8 @@
+
+// standard libraries
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <unistd.h>			// for getopt(), optarg, optind
 #include <string.h>
 
 #include "bt_setup.h"
@@ -24,7 +26,7 @@ void usage(FILE *file) {
                     "    -b ip                 \t Bind to this ip for incoming connections, ports\n"
                     "                                \t are selected automatically\n"
                     "    -s save_file    \t Save the torrent in directory save_dir (dflt: .)\n"
-                    "    -l log_file     \t Save logs to log_filw (dflt: bt-client.log)\n"
+                    "    -l log_file     \t Save logs to log_file (dflt: bt-client.log)\n"
                     "    -p ip:port        \t Instead of contacing the tracker for a peer list,\n"
                     "                                \t use this peer instead, ip:port (ip or hostname)\n"
                     "                                \t (include multiple -p for more than 1 peer)\n"
@@ -41,56 +43,54 @@ void usage(FILE *file) {
  **/
 
 void __parse_peer(peer_t *peer, char *peer_st) {
-    char * parse_str;
-    char * word;
-    unsigned short port;
-    char * ip;
+    char *parse_str;	// string in the form of (IPaddr:port) written as command-line argument after -p
+    char *word;		// token grabber variable used with string tokenizer: strtok()
+    unsigned short port;	// connection port of peer
+    char *ip;	// IP address or hostname of peer
     char id[20];
-    char sep[] = ":";
-    int i;
+    char sep[] = ":";	// delimiter separating IP address and port of peer
+    int i;	// loop iterator variable
 
-    //need to copy becaus strtok mangels things
-    parse_str = malloc(strlen(peer_st)+1);
-    strncpy(parse_str, peer_st, strlen(peer_st)+1);
+    //need to copy because strtok mangels things
+    parse_str = malloc(strlen(peer_st) + 1);
+    strncpy( parse_str, peer_st, (strlen(peer_st) + 1) );
 
-    //only can have 2 tokens max, but may have less
-    for(word = strtok(parse_str, sep), i=0; 
-            (word && i < 3); 
-            word = strtok(NULL,sep), i++){
+    // only can have 2 tokens max, but may have less
+    for(word = strtok(parse_str, sep), i = 0; 
+			(word && i < 3); 
+            word = strtok(NULL, sep), i++) {
 
-        printf("%d:%s\n",i,word);
-        switch(i){
-        case 0://id
-            ip = word;
-            break;
-        case 1://ip
-            port = atoi(word);
-        default:
-            break;
+		printf("%d:%s\n", i, word);
+        switch(i) {
+			case 0:	// ip or hostname of peer
+				ip = word;
+				break;
+			case 1: // port of peer
+				port = atoi(word);
+			default:
+				break;
         }
-
     }
 
-    if(i < 2){
-        fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n",peer_st);
+    if (i < 2) {
+		fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
         usage(stderr);
         exit(1);
     }
 
-    if(word){
-        fprintf(stderr, "ERROR: Parsing Peer: Too many values in '%s'\n",peer_st);
+    if(word) {
+        fprintf(stderr, "ERROR: Parsing Peer: Too many values in '%s'\n", peer_st);
         usage(stderr);
         exit(1);
     }
 
+    // calculate the id (SHA1 digest), where a 20-byte hex value is placed in 'id' denoting peer id
+    calc_id(ip, port, id);
 
-    //calculate the id, value placed in id
-    calc_id(ip,port,id);
-
-    //build the object we need
+    // build the peer object
     init_peer(peer, id, ip, port);
     
-    //free extra memory
+    // free extra memory
     free(parse_str);
 
     return;
@@ -106,67 +106,67 @@ void __parse_peer(peer_t *peer, char *peer_st) {
  *
  **/
 void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
-    int ch; //ch for each flag
+	int ch;	// ch for each flag
     int n_peers = 0;
-    int i;
+    int i;	// loop iterator variable
 
     /* set the default args */
     bt_args->verbose = 0; // no verbosity
     
-    //null save_file, log_file and torrent_file
+    // null save_file, log_file and torrent_file
     memset(bt_args->save_file, 0x00, FILE_NAME_MAX);
     memset(bt_args->torrent_file, 0x00, FILE_NAME_MAX);
     memset(bt_args->log_file, 0x00, FILE_NAME_MAX);
     
-    //null out file pointers
+    // null out file pointers
     bt_args->f_save = NULL;
 
-    //null bt_info pointer, should be set once torrent file is read
+    // null bt_info pointer, should be set once torrent file is read
     bt_args->bt_info = NULL;
 
-    //default lag file
-    strncpy(bt_args->log_file,"bt-client.log",FILE_NAME_MAX);
+    //default log file
+    strncpy(bt_args->log_file, "bt-client.log", FILE_NAME_MAX);
     
-    for(i=0;i<MAX_CONNECTIONS;i++){
-        bt_args->peers[i] = NULL; //initially NULL
+    for(i = 0; i < MAX_CONNECTIONS; i++) {
+        bt_args->peers[i] = NULL; // initially NULL
     }
 
-    bt_args->id = 0;
+    bt_args->id = 0;	// set bt_client's id to 0
     
     while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {
         switch (ch) {
-        case 'h': //help
-            usage(stdout);
-            exit(0);
-            break;
-        case 'v': //verbose
-            bt_args->verbose = 1;
-            break;
-        case 's': //save file
-            strncpy(bt_args->save_file,optarg,FILE_NAME_MAX);
-            break;
-        case 'l': //log file
-            strncpy(bt_args->log_file,optarg,FILE_NAME_MAX);
-            break;
-        case 'p': //peer
-            n_peers++;
-            //check if we are going to overflow
-            if(n_peers > MAX_CONNECTIONS){
-                fprintf(stderr,"ERROR: Can only support %d initial peers",MAX_CONNECTIONS);
-                usage(stderr);
-                exit(1);
-            }
+			case 'h':	//help
+				usage(stdout);
+				exit(0);
+				break;
+			case 'v':	//verbose
+				bt_args->verbose = 1;
+				break;
+			case 's':	//save file
+				strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
+				break;
+			case 'l':	//log file
+				strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
+				break;
+			case 'p':	// peer
+				n_peers++;
+				//check if we are going to overflow
+				if (n_peers > MAX_CONNECTIONS) {
+					fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
+					usage(stderr);
+					exit(1);
+				}
 
-            bt_args->peers[n_peers] = malloc(sizeof(peer_t));
+				bt_args->peers[n_peers] = malloc( sizeof(peer_t) );
 
-            //parse peers
-            __parse_peer(bt_args->peers[n_peers], optarg);
-            break;
-        case 'I':
-            bt_args->id = atoi(optarg);
-            break;
+				// parse peers
+				__parse_peer(bt_args->peers[n_peers], optarg);
+				break;
+			case 'I':
+				bt_args->id = atoi(optarg);
+				break;
         default:
-            fprintf(stderr,"ERROR: Unknown option '-%c'\n",ch);
+            fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
             usage(stdout);
             exit(1);
         }
@@ -181,9 +181,8 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
         exit(1);
     }
 
-    //copy torrent file over
-    strncpy(bt_args->torrent_file,argv[0],FILE_NAME_MAX);
+    // copy torrent file over
+    strncpy(bt_args->torrent_file, argv[0], FILE_NAME_MAX);
 
-    return ;
+    return;
 }
-
