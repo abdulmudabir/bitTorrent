@@ -40,7 +40,7 @@ int main (int argc, char * argv[]){
     }
 
     //read and parse the torrent file here
-	parseTorrentFile(&bt_args);
+    parseTorrentFile(&bt_args);
 
     if (bt_args.verbose) {
         // print out the torrent file arguments here

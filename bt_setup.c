@@ -210,6 +210,7 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	}
 	
 	// figure out size of file in bytes
+	/*
 	fseek(fp, 0, SEEK_END);	// set file pointer to end of file
 	long torrentFileSize = ftell(fp);	// store file size
 	rewind(fp);	// set file pointer back to beginning of file
@@ -221,4 +222,13 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	fileContents[torrentFileSize] = '\0';	// null terminating the string
 	
 	char delim[] = ":";	// set delimiters required
+	*/
+	
+	// read torrent file's contents char-by-char
+	char ch;	// character holder
+	while ( (ch = fgetc(fp)) != EOF ) {
+	    
+	}
+	
+	
 }
