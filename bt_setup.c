@@ -41,7 +41,6 @@ void usage(FILE *file) {
  *
  * ERRORS: Will exit on various errors
  **/
-
 void __parse_peer(peer_t *peer, char *peer_st) {
     char *parse_str;	// string in the form of (IPaddr:port) written as command-line argument after -p
     char *word;		// token grabber variable used with string tokenizer: strtok()
@@ -73,7 +72,7 @@ void __parse_peer(peer_t *peer, char *peer_st) {
     }
 
     if (i < 2) {
-		fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
+	fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
         usage(stderr);
         exit(1);
     }
