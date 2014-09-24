@@ -55,18 +55,23 @@ int main(int argc, char *argv[]) {
     
     // APPROACH: "SIMPLY READING CONTENTS OF FILE USING FGETC"
     char ch;
-        
+    int test = 0;	// FOR TESTING, DELETE LATER
     while ( (ch = fgetc(fp)) != EOF) {	// read file up to the end
-	
+	test++;
+		
 	if (ch == 'd') {	/* if 'd' is found in the file, we need to check each 'key' from then on to look for the key: 'info' coz it 
 				 * is the 'info' dictionary that contains all data relevant to us.
 				 * every dictionary has an 'e' as ending indicator corresponding to its character "begin" indicator 'd' */
 	    
 	    // fair assumption made that a 'dictionary' can have no other but only a 'string' in its 'key' places
-	    	    
+	    
 	    // look for 'key': "info"
+	    int count = 0;	// FOR TESTING, DELETE LATER
 	    while ( (ch = fgetc(fp)) != 'e') {	// as long as the dictionary does not end
 		storeForward(&ch, fp);
+		count++;
+		if (count > 3)
+		    break;
 	    }
 	}
 	
@@ -82,13 +87,14 @@ int main(int argc, char *argv[]) {
 		    continue;	// traverse through integer's digits
 	    }
 	}
-	    
+		    
 	// CASE: if file starts with "list", just get past that list too (list begins with character 'l')
 	if (ch == 'l') {
+	    
 	    while ( (ch = fgetc(fp)) != 'e') {	// while the list does not end,
-		fastForward(&ch, fp);
+		fastForward(&ch, fp);		
 	    }
-	    //printf("2. testing, ch: %c\n", fgetc());
+	    
 	}
 	
 	// CASE: if file starts with "string", just get past that string too (string begins with a 'number')
@@ -96,7 +102,7 @@ int main(int argc, char *argv[]) {
 				 * NOTE: will not fast-forward in file if a "number" is not found; 
 				 * 'offset' is set to 0 in fastForward() for such a case
 				 */
-		
+	
     }
     
     return 0;
@@ -116,6 +122,7 @@ void fastForward(char *c, FILE *fptr) {
     int num = 0;	/* temporary integer holder; 
 			 * num = 0 is also useful when offset needs to be 0 (does not fast-forward) */
     
+    finalNum = 0;	// reset static variable
     switch (*c) {
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
@@ -128,14 +135,15 @@ void fastForward(char *c, FILE *fptr) {
 	default:
 	    break;
     }
+    
     fseek(fptr, num, SEEK_CUR);	// move file pointer ahead by length of string (num) after ':'
 }
 
 void storeForward(char *c, FILE *fptr) {
     
     int num = 0;
-    char buf[] = "";	// temporary string-holder
-    
+        
+    finalNum = 0;	// reset static variable
     switch(*c) {
 	case '4':	// hope for an "info" string
 	    num = atoi(c);
@@ -144,29 +152,36 @@ void storeForward(char *c, FILE *fptr) {
 		num = atoi(c);	// more than one digit found; no chance of "info" being in there
 		num = constructNum(num);	// still need to construct that number to fast-forward without storing anythingd
 	    }
+	    printf("testing, num: %d\n", num);
 	    if (num == 4) {	/* if number is indeed the single-digit '4' and not something like '472', then
 				 * check if 'key' is equal to "info" */
-		int i = 0;
-		while (i < 4) {	// construct the word that follows the ':'
-		    *c = fgetc(fptr);
-		    strcat(buf, c);	// keep appending a char to previous
-		    i++;
+		if ( (*c = fgetc(fptr)) == 'i') {
+		    if ( (*c = fgetc(fptr)) == 'n') {
+			if ( (*c = fgetc(fptr)) == 'f') {
+			    if ( (*c = fgetc(fptr)) == 'o') {
+				printf("we've finally found 'info'\n");
+			    }
+			}
+		    }
 		}
-		buf[i] = '\0';	// null termination of string
 		
-		// now compare string with "info"
-		char infoString[5];
-		strcpy(infoString, "info");
-		if ( strcmp(buf, infoString) == 0) {
-		    printf("We've finally found 'info'\n");
-		}
 	    }
+	    break;
 	case '0': case '1': case '2': case '3': 
 	case '5': case '6': case '7': case '8': case '9':
+	    num = atoi(c);
+	    num = constructNum(num);
+	    while ( (*c = fgetc(fptr)) != ':') {
+		num = atoi(c);
+		num = constructNum(num);
+	    }
+	    break;
 	default:
 	    break;
     }
     
+    printf("1. testing, num: %d\n", num);
+    fseek(fptr, num, SEEK_CUR);	// offset file pointer ahead    
 }
 
 /**
