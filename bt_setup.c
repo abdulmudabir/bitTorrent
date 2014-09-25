@@ -105,7 +105,7 @@ void __parse_peer(peer_t *peer, char *peer_st) {
  *
  **/
 void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
-	int ch;	// ch for each flag
+    int ch;	// ch for each flag
     int n_peers = 0;
     int i;	// loop iterator variable
 
@@ -134,40 +134,40 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     
     while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {
         switch (ch) {
-			case 'h':	//help
-				usage(stdout);
-				exit(0);
-				break;
-			case 'v':	//verbose
-				bt_args->verbose = 1;
-				break;
-			case 's':	//save file
-				strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
-				break;
-			case 'l':	//log file
-				strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
-				break;
-			case 'p':	// peer
-				n_peers++;
-				//check if we are going to overflow
-				if (n_peers > MAX_CONNECTIONS) {
-					fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
-					usage(stderr);
-					exit(1);
-				}
+		case 'h':	//help
+			usage(stdout);
+			exit(0);
+			break;
+		case 'v':	//verbose
+			bt_args->verbose = 1;
+			break;
+		case 's':	//save file
+			strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
+			break;
+		case 'l':	//log file
+			strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
+			break;
+		case 'p':	// peer
+			n_peers++;
+			//check if we are going to overflow
+			if (n_peers > MAX_CONNECTIONS) {
+			fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
+				usage(stderr);
+				exit(1);
+			}
 
-				bt_args->peers[n_peers] = malloc( sizeof(peer_t) );
-
-				// parse peers
-				__parse_peer(bt_args->peers[n_peers], optarg);
-				break;
-			case 'I':
-				bt_args->id = atoi(optarg);
-				break;
-        default:
-            fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
-            usage(stdout);
-            exit(1);
+			bt_args->peers[n_peers] = malloc( sizeof(peer_t) );
+			
+			// parse peers
+			__parse_peer(bt_args->peers[n_peers], optarg);
+			break;
+		case 'I':
+			bt_args->id = atoi(optarg);
+			break;
+		default:
+		    fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
+		    usage(stdout);
+		    exit(1);
         }
     }
 
