@@ -14,7 +14,6 @@
  * print the usage of this program to the file stream file
  *
  **/
-
 void usage(FILE *file) {
     if(file == NULL) {
         file = stdout;
@@ -23,6 +22,7 @@ void usage(FILE *file) {
     fprintf(file,
                     "bt-client [OPTIONS] file.torrent\n"
                     "    -h                        \t Print this help screen\n"
+                    "    -t torrent_file    \t Use this .torrent file\n"
                     "    -b ip                 \t Bind to this ip for incoming connections, ports\n"
                     "                                \t are selected automatically\n"
                     "    -s save_file    \t Save the torrent in directory save_dir (dflt: .)\n"
@@ -132,11 +132,14 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 
     bt_args->id = 0;	// set bt_client's id to 0
     
-    while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {
+    while ((ch = getopt(argc, argv, "ht:p:s:l:vI:")) != -1) {
         switch (ch) {
-		case 'h':	//help
+		case 'h':	// help 
 			usage(stdout);
 			exit(0);
+			break;
+		case 't':	// set .torrent file to read from
+			strncpy(bt_args->torrent_file, optarg, FILE_NAME_MAX);
 			break;
 		case 'v':	//verbose
 			bt_args->verbose = 1;
@@ -190,44 +193,277 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
  * parseTorrentFile(bt_args_t *bt_args) -> void
  * 
  * parse *.torrent file to populate values related to the 'info' part of of the torrent file
+ *
+ * @param bt_args_t* "the structure that stores all command line arguments passed by user"
  * 
+ * @return void
  */
 void parseTorrentFile(bt_args_t *bt_args) {
 	/*
-	bt_args->torrent_file	// .torrent file to read from
-	bt_args->save_file	// the filename to save to
-	bt_args->bt_info.piece_length	// size of a piece for the file in bytes (power of 2)
-	bt_args->bt_info.length	// length of file to be downloaded
-	bt_args->bt_info.num_pieces	// number of pieces file is divided into
-	bt_args->bt_info.piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file
-	*/
+	 * bt_args->torrent_file	// .torrent file to read from
+	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
+	 * bt_args->bt_info.piece_length	// size of a piece for the file in bytes (power of 2); ('piece length' in .torrent file)
+	 * bt_args->bt_info.length	// length of file to be downloaded ('length' in .torrent file)
+	 * bt_args->bt_info.num_pieces	// number of pieces file is divided into ()
+	 * bt_args->bt_info.piece_hashes	/* array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
+						 * ('pieces' in torrent file) */
 	
-	FILE *fp = fopen(bt_args->torrent_file, "r");	// open .torrent file in read only mode
+	FILE *fp = fopen(bt_args->torrent_file, "r");	// open .torrent file specified by user in read only mode
 	if (fp == NULL) {
 		fprintf(stderr, "ERROR: Could not read file: '%s'\n", bt_args->torrent_file);
 		exit(1);
 	}
 	
-	// figure out size of file in bytes
-	/*
-	fseek(fp, 0, SEEK_END);	// set file pointer to end of file
-	long torrentFileSize = ftell(fp);	// store file size
-	rewind(fp);	// set file pointer back to beginning of file
+	char ch;
+	while ( (ch = fgetc(fp)) != EOF ) {	// read file up to the end
 	
-	// read the entire file and store it in a string
-	char *fileContents;		// string to store contents of file in
-	fileContents = malloc( torrentFileSize * sizeof(char) + 1 );	// allocate memory equivalent to number of bytes in file
-	fread(fileContents, sizeof(char), torrentFileSize, fp);
-	fileContents[torrentFileSize] = '\0';	// null terminating the string
-	
-	char delim[] = ":";	// set delimiters required
-	*/
-	
-	// read torrent file's contents char-by-char
-	char ch;	// character holder
-	while ( (ch = fgetc(fp)) != EOF ) {
+	    if (ch == 'd') {	/* if 'd' is found in the file, we need to check each 'key' from then on to look for the key: 'info' coz it 
+				 * is the 'info' dictionary that contains all data relevant to us.
+				 * every dictionary has an 'e' as ending indicator corresponding to its character "begin" indicator 'd' */
 	    
+	    // a fair assumption made here is that a 'dictionary' can have no other but only a 'string' in its 'key' places
+	    
+	    // look for 'key': "info"
+	    while ( (ch = fgetc(fp)) != 'e')	// as long as the dictionary does not end
+		storeForward(&ch, fp, bt_args);
+
+	    }
+	
+	    /* the file could begin with a string (e.g. 4:spam), integer (e.g. i3e) or a list (e.g. l8:pleasant5:smilee i.e. 
+	    * ["pleasant", "smile"]) whatever it is, and it will not matter to us coz we should only be alarmed at the sight of another 
+	    * 'dictionary' hoping that it is the 'info' dictionary.
+	    */
+	
+	    // CASE: if file finds an "integer"not inside a dictionary, just get past the integer coz it is insignificant to us
+	    if (ch == 'i') {
+	    // the next 'e' will indicate the end of the integer
+		while ( (ch = fgetc(fp)) != 'e') {
+		    continue;	// traverse through integer's digits
+		}
+	    }
+		    
+	    // CASE: if file finds a "list", just get past that list too (list begins with character 'l')
+	    if (ch == 'l') {
+	    
+		while ( (ch = fgetc(fp)) != 'e') {	// while the list does not end,
+		    fastForward(&ch, fp);		
+		}
+	    
+	    }
+	
+	    // CASE: if file starts with "string", just get past that string too (string begins with a 'number')
+	    fastForward(&ch, fp);	/* move on in the file
+					 * NOTE: will not fast-forward in file if a "number" is not found; 
+					 * 'offset' is set to 0 in fastForward() for such a case
+					 */
+	
+    }
+
+}
+
+/**
+ * fastForward(char *, FILE *)
+ * 	Used to simply get past the bytes following a ':'. Getting past the bytes or characters means that we do not 
+ * 	need to store any information from the file and therefore, are just moving ahead in the file.
+ * 
+ * @param char* "the character in the file that was last read"
+ * @param FILE* "pointer to the file being read"
+ * 
+ * @return void
+ */
+void fastForward(char *c, FILE *fptr) {
+    int num = 0;	/* temporary integer holder; 
+			 * num = 0 is also useful when offset needs to be 0 (does not fast-forward) */
+    
+    finalNum = 0;	// reset static variable
+    
+    num = handleNumbers(c, fptr);
+    
+    fseek(fptr, num, SEEK_CUR);	// move file pointer ahead by length of string (num) after ':'
+    
+}
+
+/**
+ * This function checks exactly which digits appear in a bencoded string before a ':' and 
+ * accordingly keeps passing each digit to the constructNum() function.
+ * @param char* "the character that has the digit"
+ * @param FILE* "pointer to the file being read"
+ * 
+ * @return int "the fully constructed natural number"
+ */
+int handleNumbers(char *chr, FILE *fpr) {
+    int num = 0;
+    switch (*chr) {
+	case '0': case '1': case '2': case '3': case '4':
+	case '5': case '6': case '7': case '8': case '9':
+	    num = atoi(chr);	// store first digit
+	    num = constructNum(num);	// construct a natural number
+	    while ((*chr = fgetc(fpr)) != ':') {
+		num = atoi(chr);	// more than one digit found
+		num = constructNum(num);
+	    }
+	default:
+	    break;
+    }
+    
+    return num;
+}
+
+/**
+ * storeForward(char *, FILE *, bt_args *)
+ * 	This function is just like fastForward() except that instead of moving the file pointer ahead without storing any 
+ * file contents, storeForward() stores strings found in the 'info' dictionary into a temporary buffer.
+ * 
+ * @param char* "the character last read in file"
+ * @param FILE* "pointer to the file being read"
+ * @param bt_args_t* "the client's arguments structure"
+ * 
+ * @return void
+ */
+void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
+    
+    int num = 0;
+    finalNum = 0;	// reset static variable
+    char buffer[1024];	// temporary string holder
+    switch(*c) {
+	case '4':	// if we get a '4', we hope to see an "info" string
+	    num = atoi(c);
+	    num = constructNum(num);
+	    while ((*c = fgetc(fptr)) != ':') {
+		num = atoi(c);	// more than one digit found; no chance of "info" being in there
+		num = constructNum(num);	// still need to construct that number to fast-forward without storing anythingd
+	    }
+	    printf("testing, num: %d\n", num);
+	    if (num == 4) {	/* if number is indeed the single-digit '4' and not something like '472', then
+				 * check if 'key' is equal to "info" */
+		int i;
+		memset(buffer, 0, sizeof(buffer));	// zero-out buffer before anything is read into it
+		for (i = 0; i < num; i++) {	// store string of length 4, into a buffer
+		    *c = fgetc(fptr);
+		    buffer[i] = *c;
+		}
+		printf("testing, buffer: '%s'\n", buffer);
+		
+		if (strcmp(buffer, "info") == 0) {	// 'buffer' contents equal to "info"?
+		    
+		    if ( (*c = fgetc(fptr)) != 'd') {	// but if 'info' is not followed by a dictinary ('d')
+			// may be what follows is an integer, a list or a string; handle all such cases
+			switch(*c) {
+			    case 'l':	// list encountered
+				while ( (*c = fgetc(fptr) != 'e') )
+				    continue;
+				break;
+			    case 'i':	// integer encountered
+				while ( (*c = fgetc(fptr) != 'e') )
+				    continue;
+				break;
+			    default:
+				num = handleNumbers(c, fptr);	// string encountered
+				break;
+			}
+		    } else {	// case where a dictionary follows after 'info'
+			
+			while ( (*c = fgetc(fptr)) != 'e' ) {	// read through the whole 'info' dictionary until it ends
+			    num = handleNumbers(c, fptr);
+			    memset(buffer, 0, sizeof(buffer));	// flush buffer
+			    
+			    for (i = 0; i < num; i++) {	// store each dictionary 'key'
+				*c = fgetc(fptr);
+				buffer[i] = *c;
+			    }
+			    handleInfoContents(buffer, c, fptr, bt_args);	/* check value of each dictionary 'key' to 
+										 * set bt_args accordingly */
+			}
+			
+			num = 0;	// set num to 0, as we do not need a file offset in this case
+		    }
+		}
+	    }
+	    break;
+	case '0': case '1': case '2': case '3': 
+	case '5': case '6': case '7': case '8': case '9':	// handle other irrelevant cases
+	    num = handleNumbers(c, fptr);
+	    break;
+	default:
+	    break;
+    }
+    
+    printf("1. testing, num: %d\n", num);
+    fseek(fptr, num, SEEK_CUR);	// offset file pointer ahead
+}
+
+void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
+
+    char holder[1024];	// another temporary string-holder
+    int number = 0;
+    finalNum = 0;	// reset static 'finalNum'
+    int i;	// loop iterator variable
+    
+    if ( strcmp(buf, "length") == 0 ) {
+	
+	if ( (*chr = fgetc(fpr)) == 'i' ) {
+	    while ( (*chr = fgetc(fpr)) != 'e' ) {
+		number = atoi(chr);
+		number = constructNum(number);
+	    }
+	    printf("2. testing, number: %d\n", number);
+	    bt_args->bt.info.length = number;	// set 'length of file to be downloaded'
+	} else  {
+	    fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
+	    exit(1);
 	}
 	
+    } else if ( strcmp(buffer, "name") == 0 ) {
 	
+	number = handleNumbers(chr, fpr);
+	memset(holder, 0, 1024);	// zero-out string-holder
+	for (i = 0; i < number; i++) {
+	    *chr = fgetc(fpr);
+	    holder[i] = *chr;
+	}
+	printf("3. testing, holder: '%s'\n", holder);
+	strncpy(bt_args->save_file, holder, strlen(holder))
+	
+    } else if ( strcmp(buffer, "piece length") == 0 ) {
+	
+	if ( (*chr = fgetc(fpr)) == 'i' ) {
+	    while ( (*chr = fgetc(fpr)) != 'e' ) {
+		number = atoi(chr);
+		number = constructNum(number);
+	    }
+	    printf("4. testing, number: %d\n", number);
+	    bt_args->bt_info.piece_length = number;	// set size of a piece for the file in bytes (power of 2)
+	    
+	} else  {
+	    fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
+	    exit(1);
+	}
+	
+    } else if ( strcmp(buffer, "pieces") == 0 ) {
+	
+	number = handleNumbers(chr, fpr);
+	memset(holder, 0, 1024);	// zero-out string-holder
+	for (i = 0; i < number; i++) {
+	    *chr = fgetc(fpr);
+	    holder[i] = *chr;
+	}
+	printf("5. testing, holder: '%s'\n", holder);
+	strncpy(bt_args->bt_info.piece_hashes, holder, strlen(holder));
+    } else {
+	fprintf(stderr, "ERROR: Bad .torrent file. Please check it.");
+	exit(1);
+    }
+}
+
+/**
+ * constructNum(int)
+ * 	Constructs a natural number by successively appending each digit to the previous one on successive calls and
+ * 	forms a non-single digit natural number. When called only once, will return a single-digit natural number.
+ * 
+ * @param int "each single digit parsed in file that can be appended to the previous one"
+ * 
+ * @return int "the entire non-single digit or single digit natural number"
+ */
+int constructNum(int n) {
+    return ( finalNum = (finalNum * 10 + n) );
 }

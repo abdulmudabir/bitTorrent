@@ -26,13 +26,13 @@ int main (int argc, char * argv[]){
     parse_args(&bt_args, argc, argv);
 
     if (bt_args.verbose) {	// if verbose mode is requested
-		printf("Args:\n");
+	printf("Args:\n");
         printf("verbose: %d\n", bt_args.verbose);
         printf("save_file: %s\n", bt_args.save_file);	// display name of file to save to
         printf("log_file: %s\n", bt_args.log_file);		// display name of file to log information to
         printf("torrent_file: %s\n", bt_args.torrent_file);	// metainfo or torrent file being used by bt client
 
-		// print information of all peers
+	// print information of all peers
         for (i = 0; i < MAX_CONNECTIONS; i++) {
 			if(bt_args.peers[i] != NULL)
                 print_peer(bt_args.peers[i]);
