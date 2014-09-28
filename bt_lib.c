@@ -33,7 +33,7 @@ void calc_id(char *ip, unsigned short port, char *id) {
      * SHA1()'s signature:
      * unsigned char *SHA1(const unsigned char *dataString, unsigned long dataLength, unsigned char *SHA1digest);
      */
-    SHA1((unsigned char *) data, len, (unsigned char *) id);
+    SHA1( (unsigned char *) data, len, (unsigned char *) id );
 
     return;
 }

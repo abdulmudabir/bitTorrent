@@ -21,6 +21,8 @@
 int main (int argc, char * argv[]){
 
     bt_args_t bt_args;	// structure to capture command-line arguments
+    printf("testing, in MAIN(), check whether structure bt_args has been allocated memory, size: %ld\n", sizeof(bt_args));
+    printf("testing, in MAIN(), size of bt_info: %ld\n", sizeof(bt_args.bt_info));
     int i;	// loop iterator
 
     parse_args(&bt_args, argc, argv);
@@ -39,11 +41,26 @@ int main (int argc, char * argv[]){
         }
     }
 
-    //read and parse the torrent file here
+    //parse the torrent file to fill up contents of the bt_args structure
     parseTorrentFile(&bt_args);
 
     if (bt_args.verbose) {
         // print out the torrent file arguments here
+	/* bt_args->torrent_file	// .torrent file to read from
+	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
+	 * bt_args->bt_info->piece_length	// size of a piece for the file in bytes (power of 2); ('piece length' in .torrent file)
+	 * bt_args->bt_info->length	// length of file to be downloaded ('length' in .torrent file)
+	 * bt_args->bt_info->num_pieces	// number of pieces file is divided into ()
+	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
+						// ('pieces' in torrent file) */
+	printf("Torrent file that is being read from: '%s'\n", bt_args.torrent_file);
+	printf("Preferred file to save torrent to: '%s'\n", bt_args.save_file);
+	printf("Length of file to be downloaded: %d\n", bt_args.bt_info->length);
+	printf("Length of each piece of the file in bytes : %d\n", bt_args.bt_info->piece_length);
+	printf("Number of pieces the file is divided into: %d\n", bt_args.bt_info->num_pieces);
+	printf("Each file piece's hash:\n");
+	for (i = 0; i < bt_args.bt_info->num_pieces; i++)
+	    printf("\tpiece_hashes[%d]: '%s'\n", i, bt_args.bt_info->piece_hashes[i]);
     }
 
     // main client loop

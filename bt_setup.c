@@ -9,6 +9,11 @@
 #include "bt_lib.h"
 
 /**
+ * a helper variable to the constructNum() function
+ */
+static int finalNum;
+
+/**
  * usage(FILE *file) -> void
  *
  * print the usage of this program to the file stream file
@@ -132,14 +137,11 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 
     bt_args->id = 0;	// set bt_client's id to 0
     
-    while ((ch = getopt(argc, argv, "ht:p:s:l:vI:")) != -1) {
+    while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {
         switch (ch) {
 		case 'h':	// help 
 			usage(stdout);
 			exit(0);
-			break;
-		case 't':	// set .torrent file to read from
-			strncpy(bt_args->torrent_file, optarg, FILE_NAME_MAX);
 			break;
 		case 'v':	//verbose
 			bt_args->verbose = 1;
@@ -202,11 +204,11 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	/*
 	 * bt_args->torrent_file	// .torrent file to read from
 	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
-	 * bt_args->bt_info.piece_length	// size of a piece for the file in bytes (power of 2); ('piece length' in .torrent file)
-	 * bt_args->bt_info.length	// length of file to be downloaded ('length' in .torrent file)
-	 * bt_args->bt_info.num_pieces	// number of pieces file is divided into ()
-	 * bt_args->bt_info.piece_hashes	/* array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
-						 * ('pieces' in torrent file) */
+	 * bt_args->bt_info->piece_length	// size of a piece for the file in bytes (power of 2); ('piece length' in .torrent file)
+	 * bt_args->bt_info->length	// length of file to be downloaded ('length' in .torrent file)
+	 * bt_args->bt_info->num_pieces	// number of pieces file is divided into ()
+	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
+						// ('pieces' in torrent file) */
 	
 	FILE *fp = fopen(bt_args->torrent_file, "r");	// open .torrent file specified by user in read only mode
 	if (fp == NULL) {
@@ -221,14 +223,24 @@ void parseTorrentFile(bt_args_t *bt_args) {
 				 * is the 'info' dictionary that contains all data relevant to us.
 				 * every dictionary has an 'e' as ending indicator corresponding to its character "begin" indicator 'd' */
 	    
-	    // a fair assumption made here is that a 'dictionary' can have no other but only a 'string' in its 'key' places
+		// a fair assumption made here is that a 'dictionary' can have no other but only a 'string' in its 'key' places
 	    
-	    // look for 'key': "info"
-	    while ( (ch = fgetc(fp)) != 'e')	// as long as the dictionary does not end
-		storeForward(&ch, fp, bt_args);
+		// look for 'key': "info"
+		printf("-1. inside dictionary; testing, ch: '%c'\n", ch);
+		while ( (ch = fgetc(fp)) != 'e') {	// as long as the dictionary does not end
+		    printf("0. testing, ch: '%c'\n", ch);
+		    if (ch == 'i') {	// integer value found
+			while ( (ch = fgetc(fp)) != 'e' )
+			    continue;
+			ch = fgetc(fp);	// store character next to where integer ends so as to pass a 'number' value to next storeForward() call
+		    }
+		    
+		    storeForward(&ch, fp, bt_args);
+		    
+		}
 
 	    }
-	
+	    
 	    /* the file could begin with a string (e.g. 4:spam), integer (e.g. i3e) or a list (e.g. l8:pleasant5:smilee i.e. 
 	    * ["pleasant", "smile"]) whatever it is, and it will not matter to us coz we should only be alarmed at the sight of another 
 	    * 'dictionary' hoping that it is the 'info' dictionary.
@@ -256,7 +268,6 @@ void parseTorrentFile(bt_args_t *bt_args) {
 					 * NOTE: will not fast-forward in file if a "number" is not found; 
 					 * 'offset' is set to 0 in fastForward() for such a case
 					 */
-	
     }
 
 }
@@ -306,6 +317,7 @@ int handleNumbers(char *chr, FILE *fpr) {
 	    break;
     }
     
+    printf("testing inside handleNumbers, num: %d\n", num);
     return num;
 }
 
@@ -346,7 +358,7 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 		
 		if (strcmp(buffer, "info") == 0) {	// 'buffer' contents equal to "info"?
 		    
-		    if ( (*c = fgetc(fptr)) != 'd') {	// but if 'info' is not followed by a dictinary ('d')
+		    if ( (*c = fgetc(fptr)) != 'd') {	// but if 'info' is not followed by a dictionary ('d')
 			// may be what follows is an integer, a list or a string; handle all such cases
 			switch(*c) {
 			    case 'l':	// list encountered
@@ -363,7 +375,11 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 			}
 		    } else {	// case where a dictionary follows after 'info'
 			
+			printf("testing, reaches here\n");
 			while ( (*c = fgetc(fptr)) != 'e' ) {	// read through the whole 'info' dictionary until it ends
+			    printf("testing, after finding 'info', inside num ==4, *c = '%c'\n", *c);
+			    printf("testing, after finding 'info', inside num ==4, finalNum: %d\n", finalNum);
+			    finalNum = 0;
 			    num = handleNumbers(c, fptr);
 			    memset(buffer, 0, sizeof(buffer));	// flush buffer
 			    
@@ -371,6 +387,7 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 				*c = fgetc(fptr);
 				buffer[i] = *c;
 			    }
+			    printf("testing, inside 'info' dictionary, buffer: '%s'\n", buffer);
 			    handleInfoContents(buffer, c, fptr, bt_args);	/* check value of each dictionary 'key' to 
 										 * set bt_args accordingly */
 			}
@@ -389,9 +406,21 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
     }
     
     printf("1. testing, num: %d\n", num);
+    printf("1. testing, value of char at end of storeForward(): '%c'\n", *c);
     fseek(fptr, num, SEEK_CUR);	// offset file pointer ahead
 }
 
+/**
+ * This function takes a string buffer as argument and checks whether buffer might have data that is of relevance to us as per the 'info' dictionary.
+ * It grabs all relevant data and populates the bt_info structure.
+ *
+ * @param char* buf "the temporary buffer that holds the relevant 'info' keys
+ * @param char* chr "last character read from file"
+ * @param FILE* fpr "pointer to file"
+ * @param bt_args_t* "structure that needs to have the command line arguments in it"
+ *
+ * @return void
+ */
 void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 
     char holder[1024];	// another temporary string-holder
@@ -402,18 +431,22 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
     if ( strcmp(buf, "length") == 0 ) {
 	
 	if ( (*chr = fgetc(fpr)) == 'i' ) {
+	    printf("reaches here inside handleInfoContents\n");
 	    while ( (*chr = fgetc(fpr)) != 'e' ) {
 		number = atoi(chr);
 		number = constructNum(number);
 	    }
 	    printf("2. testing, number: %d\n", number);
-	    bt_args->bt.info.length = number;	// set 'length of file to be downloaded'
+	    //bt_args->bt_info->length = (int *) malloc( 1 * sizeof(int) );
+	    bt_args->bt_info->length = number;	// set 'length of file to be downloaded'
+	    printf("testing, inside buf = length, bt_args->bt_info->length: '%i'\n", bt_args->bt_info->length);
+	    printf("testing, inside buf = length, chr: '%c'\n", *chr);
 	} else  {
 	    fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
 	    exit(1);
 	}
 	
-    } else if ( strcmp(buffer, "name") == 0 ) {
+    } else if ( strcmp(buf, "name") == 0 ) {
 	
 	number = handleNumbers(chr, fpr);
 	memset(holder, 0, 1024);	// zero-out string-holder
@@ -422,9 +455,9 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 	    holder[i] = *chr;
 	}
 	printf("3. testing, holder: '%s'\n", holder);
-	strncpy(bt_args->save_file, holder, strlen(holder))
+	strncpy(bt_args->save_file, holder, strlen(holder));
 	
-    } else if ( strcmp(buffer, "piece length") == 0 ) {
+    } else if ( strcmp(buf, "piece length") == 0 ) {
 	
 	if ( (*chr = fgetc(fpr)) == 'i' ) {
 	    while ( (*chr = fgetc(fpr)) != 'e' ) {
@@ -432,23 +465,46 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 		number = constructNum(number);
 	    }
 	    printf("4. testing, number: %d\n", number);
-	    bt_args->bt_info.piece_length = number;	// set size of a piece for the file in bytes (power of 2)
+	    
+	    // need to check if 'number' is a power of 2
+	    int tempNumber = number;
+	    while ( (tempNumber % 2) == 0 ) {
+		tempNumber = tempNumber / 2;
+	    }
+	    if (tempNumber != 1) {
+		fprintf(stderr, "ERROR: 'Piece length' in .torrent file should be a power of 2");
+		exit(1);
+	    }
+	    
+	    bt_args->bt_info->piece_length = number;	// set size of a piece for the file in bytes (power of 2)
 	    
 	} else  {
 	    fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
 	    exit(1);
 	}
 	
-    } else if ( strcmp(buffer, "pieces") == 0 ) {
+    } else if ( strcmp(buf, "pieces") == 0 ) {
 	
-	number = handleNumbers(chr, fpr);
+	number = handleNumbers(chr, fpr);	// total SHA1 bytes for all pieces together
+	if ((number % 20) != 0 ) {	// check whether hash length (bytes) is a multiple of 20
+	    fprintf(stderr, "ERROR: SHA1 hash length is not a multiple of 20.");
+	    exit(1);
+	}
+	bt_args->bt_info->num_pieces = number / 20;	// get total number of 'pieces' of file
+	printf("5. testing, bt_info.num_pieces: %d\n", bt_args->bt_info->num_pieces);
 	memset(holder, 0, 1024);	// zero-out string-holder
-	for (i = 0; i < number; i++) {
+	for (i = 0; i < number; i++) {	// store hash into temporary holder
 	    *chr = fgetc(fpr);
 	    holder[i] = *chr;
 	}
-	printf("5. testing, holder: '%s'\n", holder);
-	strncpy(bt_args->bt_info.piece_hashes, holder, strlen(holder));
+	printf("6. testing, holder: '%s'\n", holder);
+	
+	for (i = 0; i < bt_args->bt_info->num_pieces; i++) {	// break each 20-byte SHA1 hash and index it corresponding to its respective file piece
+	    strncpy(bt_args->bt_info->piece_hashes[i], holder, strlen(holder));
+	    memset(holder, 0, 1024);	// flush out temporary holder each time
+	}
+	printf("7. testing, after store each piece's hash, holder: '%s'\n", holder);
+	
     } else {
 	fprintf(stderr, "ERROR: Bad .torrent file. Please check it.");
 	exit(1);

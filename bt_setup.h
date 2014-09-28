@@ -75,11 +75,6 @@ void storeForward(char *, FILE *, bt_args_t *);
 int handleNumbers(char *, FILE *);
 
 /**
- * a helper variable to the constructNum() function
- */
-static int finalNum;
-
-/**
  * constructNum(int)
  * 	Constructs a natural number by successively appending each digit to the previous one on successive calls and
  * 	forms a non-single digit natural number. When called only once, will return a single-digit natural number.
@@ -89,5 +84,18 @@ static int finalNum;
  * @return int "the entire non-single digit or single digit natural number"
  */
 int constructNum(int);
+
+/**
+ * This function takes a string buffer as argument and checks whether buffer might have data that is of relevance to us as per the 'info' dictionary.
+ * It grabs all relevant data and populates the bt_info structure.
+ *
+ * @param char* buf "the temporary buffer that holds the relevant 'info' keys
+ * @param char* chr "last character read from file"
+ * @param FILE* fpr "pointer to file"
+ * @param bt_args_t* "structure that needs to have the command line arguments in it"
+ *
+ * @return void
+ */
+void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args);
 
 #endif
