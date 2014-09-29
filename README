@@ -23,5 +23,8 @@ there won't be something like "dl1:a2:goe .." or "dd3:foo4:ball ..."
 3) No dictionary found inside "info" key, e.g. 4:infol3:egg5:sharkei98776e4:hell
 4) Dictionary found inside 'info' key but doesn't have relevant 'bt_info' contents
 5) 'length' key inside 'info' dictionary does not have an integer value for e.g, d4:infod6:length5:helloe
-6) 'piece length' inside 'info' dictionary should have a 'value' that is a power of 2
-    AND 'piece length' should have an integer value i.e. 12:piece lengthi262144e
+6) a) 'piece length' inside 'info' dictionary should have a 'value' that is a power of 2
+   b) 'piece length' should have an integer value i.e. 12:piece lengthi262144e
+
+How to compile for Milestone1:
+    $ gcc bt_client.c bt_setup.c bt_lib.c -Wall -g -o bt_client

@@ -27,7 +27,6 @@ void usage(FILE *file) {
     fprintf(file,
                     "bt-client [OPTIONS] file.torrent\n"
                     "    -h                        \t Print this help screen\n"
-                    "    -t torrent_file    \t Use this .torrent file\n"
                     "    -b ip                 \t Bind to this ip for incoming connections, ports\n"
                     "                                \t are selected automatically\n"
                     "    -s save_file    \t Save the torrent in directory save_dir (dflt: .)\n"
