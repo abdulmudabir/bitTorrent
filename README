@@ -1,4 +1,15 @@
 
+Project 2 Milestone1: bit torrent client
+----------------------------------------------
+
+Name:  Anudhriti Reddy Katanguri
+uname: anukatan
+
+Name:  Abdul Mudabir Siraj Patel
+uname: abdpatel
+
+-----------------------------------------------
+
 This is skeleton development for your BitTorrent (BT) client. 
 
 Included Files and Purpose (feel free to change as necessary)
@@ -27,4 +38,4 @@ there won't be something like "dl1:a2:goe .." or "dd3:foo4:ball ..."
    b) 'piece length' should have an integer value i.e. 12:piece lengthi262144e
 
 How to compile for Milestone1:
-    $ gcc bt_client.c bt_setup.c bt_lib.c -Wall -g -o bt_client
+    $ gcc bt_client.c bt_setup.c bt_lib.c -Wall -g -lcrypto -o bt_client
