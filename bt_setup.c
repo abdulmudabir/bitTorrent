@@ -267,8 +267,10 @@ void parseTorrentFile(bt_args_t *bt_args) {
 					 * NOTE: will not fast-forward in file if a "number" is not found; 
 					 * 'offset' is set to 0 in fastForward() for such a case
 					 */
-    }
+	}
 
+	rewind(fp);	// set file pointer to beginning of file
+	fclose(fp);	// close file after reading from it
 }
 
 /**
