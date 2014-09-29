@@ -226,9 +226,8 @@ void parseTorrentFile(bt_args_t *bt_args) {
 		// a fair assumption made here is that a 'dictionary' can have no other but only a 'string' in its 'key' places
 	    
 		// look for 'key': "info"
-		printf("-1. inside dictionary; testing, ch: '%c'\n", ch);
 		while ( (ch = fgetc(fp)) != 'e') {	// as long as the dictionary does not end
-		    printf("0. testing, ch: '%c'\n", ch);
+		    
 		    if (ch == 'i') {	// integer value found
 			while ( (ch = fgetc(fp)) != 'e' )
 			    continue;
@@ -317,7 +316,6 @@ int handleNumbers(char *chr, FILE *fpr) {
 	    break;
     }
     
-    printf("testing inside handleNumbers, num: %d\n", num);
     return num;
 }
 
@@ -345,7 +343,7 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 		num = atoi(c);	// more than one digit found; no chance of "info" being in there
 		num = constructNum(num);	// still need to construct that number to fast-forward without storing anythingd
 	    }
-	    printf("testing, num: %d\n", num);
+	    
 	    if (num == 4) {	/* if number is indeed the single-digit '4' and not something like '472', then
 				 * check if 'key' is equal to "info" */
 		int i;
@@ -354,7 +352,6 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 		    *c = fgetc(fptr);
 		    buffer[i] = *c;
 		}
-		printf("testing, buffer: '%s'\n", buffer);
 		
 		if (strcmp(buffer, "info") == 0) {	// 'buffer' contents equal to "info"?
 		    
@@ -375,10 +372,8 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 			}
 		    } else {	// case where a dictionary follows after 'info'
 			
-			printf("testing, reaches here\n");
 			while ( (*c = fgetc(fptr)) != 'e' ) {	// read through the whole 'info' dictionary until it ends
-			    printf("testing, after finding 'info', inside num ==4, *c = '%c'\n", *c);
-			    printf("testing, after finding 'info', inside num ==4, finalNum: %d\n", finalNum);
+			    
 			    finalNum = 0;
 			    num = handleNumbers(c, fptr);
 			    memset(buffer, 0, sizeof(buffer));	// flush buffer
@@ -387,7 +382,7 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 				*c = fgetc(fptr);
 				buffer[i] = *c;
 			    }
-			    printf("testing, inside 'info' dictionary, buffer: '%s'\n", buffer);
+			    
 			    handleInfoContents(buffer, c, fptr, bt_args);	/* check value of each dictionary 'key' to 
 										 * set bt_args accordingly */
 			}
@@ -405,8 +400,6 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 	    break;
     }
     
-    printf("1. testing, num: %d\n", num);
-    printf("1. testing, value of char at end of storeForward(): '%c'\n", *c);
     fseek(fptr, num, SEEK_CUR);	// offset file pointer ahead
 }
 
@@ -431,16 +424,13 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
     if ( strcmp(buf, "length") == 0 ) {
 	
 	if ( (*chr = fgetc(fpr)) == 'i' ) {
-	    printf("reaches here inside handleInfoContents\n");
+	    
 	    while ( (*chr = fgetc(fpr)) != 'e' ) {
 		number = atoi(chr);
 		number = constructNum(number);
 	    }
-	    printf("2. testing, number: %d\n", number);
-	    //bt_args->bt_info->length = (int *) malloc( 1 * sizeof(int) );
-	    bt_args->bt_info->length = number;	// set 'length of file to be downloaded'
-	    printf("testing, inside buf = length, bt_args->bt_info->length: '%i'\n", bt_args->bt_info->length);
-	    printf("testing, inside buf = length, chr: '%c'\n", *chr);
+	    printf("Length of file to be downloaded : %d bytes\n", number);
+	    
 	} else  {
 	    fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
 	    exit(1);
@@ -448,15 +438,18 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 	
     } else if ( strcmp(buf, "name") == 0 ) {
 	
+	*chr = fgetc(fpr);	// push to next character after buffer read
 	number = handleNumbers(chr, fpr);
+	
 	memset(holder, 0, 1024);	// zero-out string-holder
 	for (i = 0; i < number; i++) {
 	    *chr = fgetc(fpr);
 	    holder[i] = *chr;
 	}
-	printf("3. testing, holder: '%s'\n", holder);
-	strncpy(bt_args->save_file, holder, strlen(holder));
 	
+	strncpy(bt_args->save_file, holder, strlen(holder));
+	printf("Filename to save torrent as: '%s'\n", bt_args->save_file);
+		
     } else if ( strcmp(buf, "piece length") == 0 ) {
 	
 	if ( (*chr = fgetc(fpr)) == 'i' ) {
@@ -464,8 +457,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 		number = atoi(chr);
 		number = constructNum(number);
 	    }
-	    printf("4. testing, number: %d\n", number);
-	    
+	    	    
 	    // need to check if 'number' is a power of 2
 	    int tempNumber = number;
 	    while ( (tempNumber % 2) == 0 ) {
@@ -476,7 +468,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 		exit(1);
 	    }
 	    
-	    bt_args->bt_info->piece_length = number;	// set size of a piece for the file in bytes (power of 2)
+	    printf("Size of a piece of the file: %d bytes\n", number);
 	    
 	} else  {
 	    fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
@@ -485,25 +477,26 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 	
     } else if ( strcmp(buf, "pieces") == 0 ) {
 	
+	*chr = fgetc(fpr);	// push to next character after buffer read
 	number = handleNumbers(chr, fpr);	// total SHA1 bytes for all pieces together
+	
 	if ((number % 20) != 0 ) {	// check whether hash length (bytes) is a multiple of 20
 	    fprintf(stderr, "ERROR: SHA1 hash length is not a multiple of 20.");
 	    exit(1);
 	}
-	bt_args->bt_info->num_pieces = number / 20;	// get total number of 'pieces' of file
-	printf("5. testing, bt_info.num_pieces: %d\n", bt_args->bt_info->num_pieces);
+	
+	//bt_args->bt_info->num_pieces = number / 20;	// get total number of 'pieces' of file
+	int pieces = number / 20;
+	printf("Number of pieces the file is to be divided into: %d\n", pieces);
+	
 	memset(holder, 0, 1024);	// zero-out string-holder
 	for (i = 0; i < number; i++) {	// store hash into temporary holder
 	    *chr = fgetc(fpr);
 	    holder[i] = *chr;
 	}
-	printf("6. testing, holder: '%s'\n", holder);
 	
-	for (i = 0; i < bt_args->bt_info->num_pieces; i++) {	// break each 20-byte SHA1 hash and index it corresponding to its respective file piece
-	    strncpy(bt_args->bt_info->piece_hashes[i], holder, strlen(holder));
-	    memset(holder, 0, 1024);	// flush out temporary holder each time
-	}
-	printf("7. testing, after store each piece's hash, holder: '%s'\n", holder);
+	for (i = 0; i < pieces; i++)
+	    printf( "Hash_piece[%d]: %s\n", i, (holder + i) );
 	
     } else {
 	fprintf(stderr, "ERROR: Bad .torrent file. Please check it.");
