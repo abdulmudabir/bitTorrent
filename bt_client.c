@@ -21,8 +21,6 @@
 int main (int argc, char * argv[]){
 
     bt_args_t bt_args;	// structure to capture command-line arguments
-    //printf("testing, in MAIN(), check whether structure bt_args has been allocated memory, size: %ld\n", sizeof(bt_args));
-    //printf("testing, in MAIN(), size of bt_info: %ld\n", sizeof(bt_args.bt_info));
     int i;	// loop iterator
 
     parse_args(&bt_args, argc, argv);
@@ -41,7 +39,8 @@ int main (int argc, char * argv[]){
         }
     }
 
-    //parse the torrent file to fill up contents of the bt_args structure
+    // parse the torrent file to fill up contents of the bt_args structure
+    // this should populate the bt_args, bt_info structures with required information from the 'info' dictionary in .torrent file
     parseTorrentFile(&bt_args);
 
     if (bt_args.verbose) {

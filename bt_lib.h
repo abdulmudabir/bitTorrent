@@ -54,7 +54,7 @@ typedef struct peer {
 } peer_t;
 
 /* holds information about a torrent file
- * parse .torrent file to fill contents of bt_info_t struct
+ * parse .torrent file to fill contents of bt_info_t structure
  */
 typedef struct {
     char name[FILE_NAME_MAX];	// name of file
