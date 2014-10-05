@@ -38,4 +38,4 @@ there won't be something like "dl1:a2:goe .." or "dd3:foo4:ball ..."
    b) 'piece length' should have an integer value i.e. 12:piece lengthi262144e
 
 How to compile for Milestone1:
-    $ gcc bt_client.c bt_setup.c bt_lib.c -Wall -g -lcrypto -o bt_client
+    $ gcc bt_client.c bt_setup.c bt_lib.c -Wall -Wextra -g -lcrypto -o bt_client
