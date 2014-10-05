@@ -58,7 +58,7 @@ void __parse_peer(peer_t *peer, char *peer_st) {
     parse_str = malloc(strlen(peer_st) + 1);
     strncpy( parse_str, peer_st, (strlen(peer_st) + 1) );
 
-    // only can have 2 tokens max, but may have less
+    // can only have 2 tokens max, but may have less
     for(word = strtok(parse_str, sep), i = 0; 
 			(word && i < 3); 
             word = strtok(NULL, sep), i++) {
@@ -76,9 +76,9 @@ void __parse_peer(peer_t *peer, char *peer_st) {
     }
 
     if (i < 2) {
-	fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
-        usage(stderr);
-        exit(1);
+    	fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
+    	usage(stderr);
+    	exit(1);
     }
 
     if(word) {
@@ -87,8 +87,8 @@ void __parse_peer(peer_t *peer, char *peer_st) {
         exit(1);
     }
 
-    // calculate the id (SHA1 digest), where a 20-byte hex value is placed in 'id' denoting peer id
-    calc_id(ip, port, id);
+    // calculate the id (SHA1 digest), where a 20-byte value is placed in 'id' denoting peer id
+    calc_id(ip, port, id);	// placed 20-byte SHA1 hash string into 'id'
 
     // build the peer object
     init_peer(peer, id, ip, port);
@@ -155,15 +155,15 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 			n_peers++;
 			//check if we are going to overflow
 			if (n_peers > MAX_CONNECTIONS) {
-			fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
+				fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
 				usage(stderr);
 				exit(1);
 			}
 
-			bt_args->peers[n_peers] = malloc( sizeof(peer_t) );
+			bt_args->peers[n_peers - 1] = malloc( sizeof(peer_t) );
 			
 			// parse peers
-			__parse_peer(bt_args->peers[n_peers], optarg);
+			__parse_peer(bt_args->peers[n_peers - 1], optarg);
 			break;
 		case 'I':
 			bt_args->id = atoi(optarg);
@@ -450,10 +450,11 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 			*chr = fgetc(fpr);
 			holder[i] = *chr;
 		}
+		holder[number] = '\0';	// null-terminate the string
 
-		strncpy(bt_args->save_file, holder, strlen(holder));
+		memcpy( bt_args->save_file, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
 		printf("Filename to save torrent as: '%s'\n", bt_args->save_file);
-		
+
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
     	if ( (*chr = fgetc(fpr)) == 'i' ) {	// look for integer only
@@ -490,30 +491,41 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 			exit(1);
 		}
 		
-		printf("testing, number: %d\n", number);
+		// printf("testing, number: %d\n", number);
 
 		bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
 		printf("Number of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
 	
 		memset(holder, 0, 1024);	// zero-out string-holder
-		/*for (i = 0; i < number; i++) {	// store entire hash string into temporary holder
-			*chr = fgetc(fpr);
-			printf("%d) %c\n", i, *chr);
-			holder[i] = *chr;
-		}*/
+		
+		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes
+		holder[number] = '\0';	// explicitly null-terminate temporary string holder again
+		char *hexString;	// store string as hex temporarily
 
-		fread(holder, sizeof(char), number, fpr);
-
-		printf("\ntesting, holder: %s\n", holder);
-		printf("testing, holder string length: %ld\n", strlen(holder));
-
+		// printf("\ntesting, holder: %s\n", holder);
+		
 		bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
+		int j;	// loop-iterator variable
+		hexString = malloc( 80 * sizeof(char) + 1);	// 80 bytes as each hash byte needs to be written as a 4-char value + 1 byte for null-termination
+
 		for (i = 0; i < bt_info->num_pieces; i++) {
-			bt_info->piece_hashes[i] = (char *) malloc( 20 * sizeof(char) );	// allocate 20 bytes to each piece's hash
-			// printf( "Hash_piece[%d]: %s\n", i, (holder + i) );	// give pointer only to print
-			strncpy( bt_info->piece_hashes[i], (holder + 20 * i), 20 );
-			printf("\nHash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
-			printf("testing, length of hash_piece[%d]: %ld\n", i, strlen(bt_info->piece_hashes[i]));
+			bt_info->piece_hashes[i] = (char *) malloc( (80 * sizeof(char) + 1) );
+						
+			memset(hexString, 0, sizeof(hexString));	// zero-out hexString
+			j = 0;
+			while (j < 20) {
+				sprintf( (hexString + 4 * j), "%04x", holder[j + 20 * i]);
+				j++;
+			}
+			hexString[80] = '\0';	// null-terminate string
+
+			// printf("testing, hexString: %s\n", hexString);
+
+			memcpy( bt_info->piece_hashes[i], hexString, 80 );	// copy 80 bytes from temporary hexString into the bt_info structure
+			bt_info->piece_hashes[i][80] = '\0';	// null-termination
+
+			// printf("Length of hash piece[%d]: %ld\n", i, strlen(bt_info->piece_hashes[i]));
+			printf("80-byte hex Hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
 		}
 	
     } else {

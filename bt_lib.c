@@ -17,7 +17,7 @@
 
 /**
  * calc_id() clubs the IP address and port number of peer into a single string. Then, 
- * fills the peer id with a SHA1 digest computed on the clubbed string
+ * fills the peer 'id' with a SHA1 digest computed on the clubbed string
  */
 void calc_id(char *ip, unsigned short port, char *id) {
     char data[256];		// data for which SHA1 digest is to be made
@@ -27,7 +27,7 @@ void calc_id(char *ip, unsigned short port, char *id) {
      * terminating '\0' (null) character in 'data'.
      * snprintf() returns the index of the char that it places '\0' at
      */
-    len = snprintf(data, 256, "%s%u", ip, port);
+    len = snprintf(data, 256, "%s%u", ip, port);    // example data = localhost8000
 
     /* id is just the SHA1 of the ip and port string
      * SHA1()'s signature:
@@ -55,7 +55,7 @@ int init_peer(peer_t *peer, char *id, char *ip, unsigned short port) {
     struct hostent *hostinfo;	// instantiate hostent struct that contains information like IP address, host name, etc.
 	
     //set the host id and port for reference
-    memcpy(peer->id, id, ID_SIZE);
+    memcpy(peer->id, id, ID_SIZE);  // SHA1 hash of peer IP & port is stored as peer struct's 'id'
     peer->port = port;
         
     //get the host by name
@@ -72,7 +72,7 @@ int init_peer(peer_t *peer, char *id, char *ip, unsigned short port) {
     peer->sockaddr.sin_family = AF_INET;
 	
     //copy the address from h_addr field of 'hostinfo' to the peer's socket address
-    bcopy((char *) (hostinfo->h_addr), 
+    bcopy( (char *) (hostinfo->h_addr), 
                 (char *) &(peer->sockaddr.sin_addr.s_addr),
                 hostinfo->h_length);
         
@@ -98,7 +98,7 @@ void print_peer(peer_t *peer) {
         printf("id: ");
         
 		for (i = 0; i < ID_SIZE; i++) {
-            printf("%02x", peer->id[i]);	// convert to 40-byte
+            printf("%02x", peer->id[i]);	// convert to 40-byte hex string
         }
 		
         printf("\n");

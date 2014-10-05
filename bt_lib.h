@@ -46,7 +46,7 @@
 
 // holds information about a peer
 typedef struct peer {
-    unsigned char id[ID_SIZE];	// the peer id (a hex string)
+    unsigned char id[ID_SIZE];	// the peer id (SHA1 hash of peer IP & port)
     unsigned short port;	// the port to connect
     struct sockaddr_in sockaddr;	//sockaddr for peer
     int choked; // peer choked?
@@ -113,7 +113,7 @@ typedef struct bt_msg {
     union { 
         bt_bitfield_t bitfield; // send a bitfield
         int have; // what piece you have
-        bt_piece_t piece; // a peice message
+        bt_piece_t piece; // a piece message
         bt_request_t request; // request messge
         bt_request_t cancel; // cancel message, same type as request
         char data[0]; // pointer to start of payload, just incase

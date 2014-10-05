@@ -5,7 +5,8 @@ Status at the moment:
 
 Tasks ahead:
 * need to add Sanity checks for 'info' segments that are being read, for e.g., need to check if an integer actually does have an integer value in it like 'i546e' and not like 'iHelloe'
-* need to figure out memory allocation for the bt_args, bt_info structures so as to be able to access its members in order to store parsed 'info' segments into them (Oct 1)
+* Sanity check for IP:port peer_st
+(V) * need to figure out memory allocation for the bt_args, bt_info structures so as to be able to access its members in order to store parsed 'info' segments into them (Oct 1)
 * How will 'handshakes' happen between peers ?
     ** need to know how symmetric TCP connections can be established between peers by checking 'choked', 'interested', 'id' fields of the 'peer' structures (Oct 2)
     ** need to know how SHA1 hashes can be validated among peers to determine if they will participate in the same swarm or no
