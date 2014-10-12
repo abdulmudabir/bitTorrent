@@ -57,7 +57,7 @@ typedef struct peer {
  * parse .torrent file to fill contents of bt_info_t structure
  */
 typedef struct {
-    char name[FILE_NAME_MAX];	// name of file
+    char name[FILE_NAME_MAX];	// suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
     int piece_length;	// number of bytes in each piece
     int length;	// length of the file to be downloaded in bytes
     int num_pieces;	//number of pieces, computed based on above two values
@@ -66,10 +66,10 @@ typedef struct {
 
 //holds all the arguments and state information for running the bt client
 typedef struct {
-    int verbose; //verbose level
-    char save_file[FILE_NAME_MAX]; //the filename to save to
+    int verbose; // verbose level
+    char save_file[FILE_NAME_MAX]; // the filename to save to
     FILE *f_save;
-    char log_file[FILE_NAME_MAX]; //the log file
+    char log_file[FILE_NAME_MAX]; //thise log file
     char torrent_file[FILE_NAME_MAX]; // *.torrent file
     peer_t *peers[MAX_CONNECTIONS]; // array of peer_t pointers
     unsigned int id; // this bt_client's id

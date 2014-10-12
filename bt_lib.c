@@ -23,9 +23,8 @@ void calc_id(char *ip, unsigned short port, char *id) {
     char data[256];		// data for which SHA1 digest is to be made
     int len;			// length of data
     
-    /* format print to store up to 256 bytes (characters) including the 
-     * terminating '\0' (null) character in 'data'.
-     * snprintf() returns the index of the char that it places '\0' at
+    /* format print to store up to 256 bytes (characters) including the terminating '\0' (null) character in 'data'.
+     * snprintf() returns the index of the char that it places '\0' at; basically returns the length of the string copied
      */
     len = snprintf(data, 256, "%s%u", ip, port);    // example data = localhost8000
 
@@ -104,6 +103,3 @@ void print_peer(peer_t *peer) {
         printf("\n");
     }
 }
-
-
-

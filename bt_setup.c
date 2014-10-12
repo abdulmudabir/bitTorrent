@@ -131,49 +131,49 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     strncpy(bt_args->log_file, "bt-client.log", FILE_NAME_MAX);
     
     for(i = 0; i < MAX_CONNECTIONS; i++) {
-        bt_args->peers[i] = NULL; // initially NULL
+        bt_args->peers[i] = NULL; // set all peers NULL initially
     }
 
     bt_args->id = 0;	// set bt_client's id to 0
     
-    while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {
+    while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {	// getopt() returns -1 after all command line arguments are parsed
         switch (ch) {
-		case 'h':	// help 
-			usage(stdout);
-			exit(0);
-			break;
-		case 'v':	//verbose
-			bt_args->verbose = 1;
-			break;
-		case 's':	//save file
-			strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
-			break;
-		case 'l':	//log file
-			strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
-			break;
-		case 'p':	// peer
-			n_peers++;
-			//check if we are going to overflow
-			if (n_peers > MAX_CONNECTIONS) {
-				fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
-				usage(stderr);
-				exit(1);
-			}
+			case 'h':	// help 
+				usage(stdout);
+				exit(0);
+				break;
+			case 'v':	// verbose
+				bt_args->verbose = 1;
+				break;
+			case 's':	// save file
+				strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
+				break;
+			case 'l':	//log file
+				strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
+				break;
+			case 'p':	// peer
+				n_peers++;
+				//check if we are going to overflow
+				if (n_peers > MAX_CONNECTIONS) {
+					fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
+					usage(stderr);
+					exit(1);
+				}
 
-			bt_args->peers[n_peers - 1] = malloc( sizeof(peer_t) );
-			
-			// parse peers
-			__parse_peer(bt_args->peers[n_peers - 1], optarg);
-			break;
-		case 'I':
-			bt_args->id = atoi(optarg);
-			break;
-		default:
-		    fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
-		    usage(stdout);
-		    exit(1);
-        }
-    }
+				bt_args->peers[n_peers - 1] = malloc( sizeof(peer_t) );
+
+				// parse peers
+				__parse_peer(bt_args->peers[n_peers - 1], optarg);
+				break;
+			case 'I':
+				bt_args->id = atoi(optarg);
+				break;
+			default:
+				fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
+				usage(stdout);
+				exit(1);
+		}
+	}
 
     argc -= optind;
     argv += optind;
@@ -506,26 +506,26 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 		
 		bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
 		int j;	// loop-iterator variable
-		hexString = malloc( 80 * sizeof(char) + 1);	// 80 bytes as each hash byte needs to be written as a 4-char value + 1 byte for null-termination
+		hexString = malloc( 40 * sizeof(char) + 1);	// 40 bytes as each hash byte can be written as a 2-char hex value + 1 byte for null-termination
 
 		for (i = 0; i < bt_info->num_pieces; i++) {
-			bt_info->piece_hashes[i] = (char *) malloc( (80 * sizeof(char) + 1) );
+			bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
 						
 			memset(hexString, 0, sizeof(hexString));	// zero-out hexString
 			j = 0;
 			while (j < 20) {
-				sprintf( (hexString + 4 * j), "%04x", holder[j + 20 * i]);
+				sprintf( (hexString + 2 * j), "%02x", holder[j + 20 * i]);
 				j++;
 			}
-			hexString[80] = '\0';	// null-terminate string
+			hexString[40] = '\0';	// null-terminate string
 
-			// printf("testing, hexString: %s\n", hexString);
+			printf("testing, hexString: %s\n", hexString);
 
-			memcpy( bt_info->piece_hashes[i], hexString, 80 );	// copy 80 bytes from temporary hexString into the bt_info structure
-			bt_info->piece_hashes[i][80] = '\0';	// null-termination
+			/*memcpy( bt_info->piece_hashes[i], hexString, 40 );	// copy 80 bytes from temporary hexString into the bt_info structure
+			bt_info->piece_hashes[i][40] = '\0';	// null-termination*/
 
 			// printf("Length of hash piece[%d]: %ld\n", i, strlen(bt_info->piece_hashes[i]));
-			printf("80-byte hex Hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
+			// printf("40-byte hex Hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
 		}
 	
     } else {
