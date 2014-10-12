@@ -51,17 +51,16 @@ void parseTorrentFile(bt_args_t *bt_args);
 void fastForward(char *, FILE *);
 
 /**
- * storeForward(char *, FILE *, bt_args *)
+ * storeForward(char *, FILE *)
  * 	This function is just like fastForward() except that instead of moving the file pointer ahead without storing any 
  * file contents, storeForward() stores strings found in the 'info' dictionary into a temporary buffer.
  * 
  * @param char* "the character last read in file"
  * @param FILE* "pointer to the file being read"
- * @param bt_args_t* "the client's arguments structure"
  * 
  * @return void
  */
-void storeForward(char *, FILE *, bt_args_t *);
+void storeForward(char *, FILE *);
 
 /**
  * This function checks exactly which digits appear in a bencoded string before a ':' and 
@@ -92,10 +91,9 @@ int constructNum(int);
  * @param char* buf "the temporary buffer that holds the relevant 'info' keys
  * @param char* chr "last character read from file"
  * @param FILE* fpr "pointer to file"
- * @param bt_args_t* "structure that needs to have the command line arguments in it"
  *
  * @return void
  */
-void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args);
+void handleInfoContents(char *buf, char *chr, FILE *fpr);
 
 #endif

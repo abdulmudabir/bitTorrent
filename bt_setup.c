@@ -233,7 +233,7 @@ void parseTorrentFile(bt_args_t *bt_args) {
 			ch = fgetc(fp);	// store character next to where integer ends so as to pass a 'number' value to next storeForward() call
 		    }
 		    
-		    storeForward(&ch, fp, bt_args);
+		    storeForward(&ch, fp);
 		    
 		}
 
@@ -321,17 +321,16 @@ int handleNumbers(char *chr, FILE *fpr) {
 }
 
 /**
- * storeForward(char *, FILE *, bt_args *)
+ * storeForward(char *, FILE *)
  * 	This function is just like fastForward() except that instead of moving the file pointer ahead without storing any 
  * file contents, storeForward() stores strings found in the 'info' dictionary into a temporary buffer.
  * 
  * @param char* "the character last read in file"
  * @param FILE* "pointer to the file being read"
- * @param bt_args_t* "the client's arguments structure"
  * 
  * @return void
  */
-void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
+void storeForward(char *c, FILE *fptr) {
     
     int num = 0;
     finalNum = 0;	// reset static variable
@@ -384,8 +383,7 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
 			    			buffer[i] = *c;
 						}
 
-			    		handleInfoContents(buffer, c, fptr, bt_args);	/* check value of each dictionary 'key' to 
-										 * set bt_args accordingly */
+			    		handleInfoContents(buffer, c, fptr);	// check value of each dictionary 'key' to set values in bt_info structure accordingly
 					}
 			
 					num = 0;	// set num to 0, as we do not need a file offset in this case
@@ -411,11 +409,10 @@ void storeForward(char *c, FILE *fptr, bt_args_t *bt_args) {
  * @param char* buf "the temporary buffer that holds the relevant 'info' keys
  * @param char* chr "last character read from file"
  * @param FILE* fpr "pointer to file"
- * @param bt_args_t* "structure that needs to have the command line arguments in it"
  *
  * @return void
  */
-void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
+void handleInfoContents(char *buf, char *chr, FILE *fpr) {
 
     char holder[1024];	// another temporary string-holder
     int number = 0;
@@ -433,7 +430,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
     			number = constructNum(number);
     		}
     		bt_info->length = number;
-    		printf("Length of file to be downloaded : %d bytes\n", bt_info->length);
+    		printf("Size or length of file to be downloaded : %d bytes\n", bt_info->length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
@@ -452,8 +449,8 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 		}
 		holder[number] = '\0';	// null-terminate the string
 
-		memcpy( bt_args->save_file, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
-		printf("Filename to save torrent as: '%s'\n", bt_args->save_file);
+		memcpy( bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
+		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
@@ -498,7 +495,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 	
 		memset(holder, 0, 1024);	// zero-out string-holder
 		
-		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes
+		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes from .torrent file
 		holder[number] = '\0';	// explicitly null-terminate temporary string holder again
 		char *hexString;	// store string as hex temporarily
 
@@ -520,6 +517,9 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr, bt_args_t *bt_args) {
 			hexString[40] = '\0';	// null-terminate string
 
 			printf("testing, hexString: %s\n", hexString);
+			/* kept this above 'testing' line as is before more information is known on how to handle the null-character in piece_hash segment
+			 * what is known for now is, all hell breaks loose only when memcpy/memmove/strcpy/strncpy functions are used to populate bt_info->piece_hashes
+			 */
 
 			/*memcpy( bt_info->piece_hashes[i], hexString, 40 );	// copy 80 bytes from temporary hexString into the bt_info structure
 			bt_info->piece_hashes[i][40] = '\0';	// null-termination*/
