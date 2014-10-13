@@ -18,58 +18,51 @@
 #include "bt_lib.h"
 #include "bt_setup.h"
 
-int main (int argc, char * argv[]){
+int main (int argc, char * argv[]) {
 
-    bt_args_t bt_args;	// structure to capture command-line arguments
+    bt_args_t *bt_args = NULL; // structure to capture command-line arguments
     int i;	// loop iterator
 
     parse_args(&bt_args, argc, argv);
 
-    if (bt_args.verbose) {	// if verbose mode is requested
+    if (bt_args->verbose) {	// if verbose mode is requested
         printf("Args:\n");
-        printf("verbose: %d\n", bt_args.verbose);
-        printf("save_file: %s\n", bt_args.save_file);	// display name of file to save to
-        printf("log_file: %s\n", bt_args.log_file);		// display name of file to log information to
-        printf("torrent_file: %s\n", bt_args.torrent_file);	// metainfo or torrent file being used by bt client
+        printf("\tverbose: %d\n", bt_args->verbose);
+        printf("\tsave_file: %s\n", bt_args->save_file);	// display name of file to save to
+        printf("\tlog_file: %s\n", bt_args->log_file);		// display name of file to log information to
+        printf("\ttorrent_file: %s\n", bt_args->torrent_file);	// metainfo or torrent file being used by bt client
 
         // print information of all peers
         for (i = 0; i < MAX_CONNECTIONS; i++) {
-            if(bt_args.peers[i] != NULL)
-                print_peer(bt_args.peers[i]);
+            if(bt_args->peers[i] != NULL)
+                print_peer(bt_args->peers[i]);
+            else
+                break;
         }
     }
 
-    // parse the torrent file to fill up contents of the bt_args structure
-    // this should populate the bt_args, bt_info structures with required information from the 'info' dictionary in .torrent file
-    parseTorrentFile(&bt_args);
+    // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
+    parse_torrent_file(&bt_args);
+    printf("testing, bt_args->bt_info->name: '%s'\n", (*bt_args).bt_info->name);
+    printf("testing, bt_args->bt_info->num_pieces: %d\n", bt_args->bt_info->num_pieces);
+    printf("testing, bt_args->bt_info->piece_length: %d\n", bt_args->bt_info->piece_length);
+    printf("testing, bt_args->bt_info->length: %d\n", bt_args->bt_info->length);
 
-    if (bt_args.verbose) {
-        // print out the torrent file arguments here
-	/* bt_args->torrent_file	// .torrent file to read from
-	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
-	 * bt_args->bt_info->piece_length	// size of a piece for the file in bytes (power of 2); ('piece length' in .torrent file)
-	 * bt_args->bt_info->length	// length of file to be downloaded ('length' in .torrent file)
-	 * bt_args->bt_info->num_pieces	// number of pieces file is divided into ()
-	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
-						// ('pieces' in torrent file) */
-// 	printf("Torrent file that is being read from: '%s'\n", bt_args.torrent_file);
-// 	printf("Preferred file to save torrent to: '%s'\n", bt_args.save_file);
-// 	printf("Length of file to be downloaded: %d\n", bt_args.bt_info->length);
-// 	printf("Length of each piece of the file in bytes : %d\n", bt_args.bt_info->piece_length);
-// 	printf("Number of pieces the file is divided into: %d\n", bt_args.bt_info->num_pieces);
-// 	printf("Each file piece's hash:\n");
-// 	for (i = 0; i < bt_args.bt_info->num_pieces; i++)
-// 	    printf("\tpiece_hashes[%d]: '%s'\n", i, bt_args.bt_info->piece_hashes[i]);
+    // construct handshake information for each peer in swarm
+    for (i = 0; i < MAX_CONNECTIONS; i++) {
+        if (bt_args->peers[i] != NULL) {
+            fill_handshake_info(bt_args->peers[i], bt_args);
+        } else
+            break;
     }
 
     // main client loop
-    //printf("Starting Main Loop\n");
+    // printf("Starting Main Loop\n");
     /*
 	while(1){
 
         //try to accept incoming connection from new peer
              
-        
         // poll current peers for incoming traffic
         // write pieces to files
         // update peers' choke or unchoke status

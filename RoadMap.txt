@@ -20,3 +20,4 @@ Tasks ahead:
 * write the 'Makefile'
 * provide a verbose mode
 * check for memory leaks with valgrind
+* need to check docunentation for each function written coz some functions have been modified

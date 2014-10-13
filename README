@@ -26,6 +26,8 @@ Suggested Additional Files [and headers]
 bt_io.c[.h]   :   File for handling input output
 bt_sock.c[.h] :   File for handling socket and network issues
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 Test cases considered while .torrent file parsing
 1) "torrent file does not start with (first character in .torrent file) a dictionary but starts with: integer, list, string
 2) In a dictionary, it does not make sense to map a "key" that is an 'integer' to a value that is a "string", "integer", "list", so a dictionary should never begin with an
@@ -39,3 +41,17 @@ there won't be something like "dl1:a2:goe .." or "dd3:foo4:ball ..."
 
 How to compile for Milestone1:
     $ gcc bt_client.c bt_setup.c bt_lib.c -lcrypto -Wall -Wextra -g -o bt_client
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+more test cases checked:
+7) sanity checks for peer information
+	$ bt_client -p localhost moby_dick.txt.torrent
+	$ bt_client -p moby_dick.txt.torrent
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+NOTE
+
+* For this project, peers is a general term used to refer to any entity participating in the bit torrent swarm, so peers could either be seeders or leechers
+	** n_peers denotes .. TO DO

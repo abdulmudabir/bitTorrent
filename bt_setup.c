@@ -9,9 +9,9 @@
 #include "bt_lib.h"
 
 /**
- * a helper variable to the constructNum() function
+ * a helper variable to the construct_num() function
  */
-static int finalNum;
+static int final_num;
 
 /**
  * usage(FILE *file) -> void
@@ -26,16 +26,15 @@ void usage(FILE *file) {
 
     fprintf(file,
                     "bt-client [OPTIONS] file.torrent\n"
-                    "    -h                        \t Print this help screen\n"
-                    "    -b ip                 \t Bind to this ip for incoming connections, ports\n"
-                    "                                \t are selected automatically\n"
-                    "    -s save_file    \t Save the torrent in directory save_dir (dflt: .)\n"
-                    "    -l log_file     \t Save logs to log_file (dflt: bt-client.log)\n"
-                    "    -p ip:port        \t Instead of contacing the tracker for a peer list,\n"
-                    "                                \t use this peer instead, ip:port (ip or hostname)\n"
-                    "                                \t (include multiple -p for more than 1 peer)\n"
-                    "    -I id                 \t Set the node identifier to id (dflt: random)\n"
-                    "    -v                        \t verbose, print additional verbose info\n");
+                    "    -h 			\t Print this help screen\n"
+                    "    -b ip:port 		\t Bind to this ip:port for incoming connections \n"
+                    "    -s save_file   	\t Save the torrent in directory save_dir (dflt: .)\n"
+                    "    -l log_file    	\t Save logs to log_file (dflt: bt-client.log)\n"
+                    "    -p ip:port 		\t Instead of contacing the tracker for a peer list,\n"
+                    "                           \t use this peer instead, ip:port (ip or hostname)\n"
+                    "                           \t (include multiple -p for more than 1 peer)\n"
+                    "    -I id 		\t Set the node identifier to id (dflt: random)\n"
+                    "    -v                     \t verbose, print additional verbose info\n");
 }
 
 /**
@@ -46,13 +45,13 @@ void usage(FILE *file) {
  * ERRORS: Will exit on various errors
  **/
 void __parse_peer(peer_t *peer, char *peer_st) {
-    char *parse_str;	// string in the form of (IPaddr:port) written as command-line argument after -p
-    char *word;		// token grabber variable used with string tokenizer: strtok()
-    unsigned short port;	// connection port of peer
-    char *ip;	// IP address or hostname of peer
+    char *parse_str;    // string in the form of (IPaddr:port) written as command-line argument after -p
+    char *word;     // token grabber variable used with string tokenizer: strtok()
+    unsigned short port;    // connection port of peer
+    char *ip;   // IP address or hostname of peer
     char id[20];
-    char sep[] = ":";	// delimiter separating IP address and port of peer
-    int i;	// loop iterator variable
+    char sep[] = ":";   // delimiter separating IP address and port of peer
+    int i;  // loop iterator variable
 
     //need to copy because strtok mangels things
     parse_str = malloc(strlen(peer_st) + 1);
@@ -60,25 +59,25 @@ void __parse_peer(peer_t *peer, char *peer_st) {
 
     // can only have 2 tokens max, but may have less
     for(word = strtok(parse_str, sep), i = 0; 
-			(word && i < 3); 
+            (word && i < 3); 
             word = strtok(NULL, sep), i++) {
 
-		printf("%d:%s\n", i, word);
+        printf("%d:%s\n", i, word);
         switch(i) {
-			case 0:	// ip or hostname of peer
-				ip = word;
-				break;
-			case 1: // port of peer
-				port = atoi(word);
-			default:
-				break;
+            case 0: // ip or hostname of peer
+                ip = word;
+                break;
+            case 1: // port of peer
+                port = atoi(word);
+            default:
+                break;
         }
     }
 
-    if (i < 2) {
-    	fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
-    	usage(stderr);
-    	exit(1);
+    if (i < 2) {    // sanity check for format, "IPaddr:port" OK but "IPaddr" or "" after -p NOT OK
+        fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n", peer_st);
+        usage(stderr);
+        exit(1);
     }
 
     if(word) {
@@ -87,8 +86,8 @@ void __parse_peer(peer_t *peer, char *peer_st) {
         exit(1);
     }
 
-    // calculate the id (SHA1 digest), where a 20-byte value is placed in 'id' denoting peer id
-    calc_id(ip, port, id);	// placed 20-byte SHA1 hash string into 'id'
+    // calculate the id (i.e. SHA1 digest), where a 20-byte value is placed in 'id' that denotes each peer id
+    calc_id(ip, port, id);
 
     // build the peer object
     init_peer(peer, id, ip, port);
@@ -108,65 +107,78 @@ void __parse_peer(peer_t *peer, char *peer_st) {
  * ERRORS: Will exit on various errors
  *
  **/
-void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
+void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
     int ch;	// ch for each flag
-    int n_peers = 0;
+    int n_peers = 0;	// track number of seeders in torrent swarm; peers is synonymous to seeders
     int i;	// loop iterator variable
 
+    // alllocate memory to bt_args structure
+    *bt_args = (bt_args_t *) malloc(sizeof(bt_args_t));
+
     /* set the default args */
-    bt_args->verbose = 0; // no verbosity
+    (*bt_args)->verbose = 0; // no verbosity
     
     // null save_file, log_file and torrent_file
-    memset(bt_args->save_file, 0x00, FILE_NAME_MAX);
-    memset(bt_args->torrent_file, 0x00, FILE_NAME_MAX);
-    memset(bt_args->log_file, 0x00, FILE_NAME_MAX);
-    
-    // null out file pointers
-    bt_args->f_save = NULL;
+    memset( (*bt_args)->save_file, 0x00, FILE_NAME_MAX);
+    memset( (*bt_args)->torrent_file, 0x00, FILE_NAME_MAX);
+    memset( (*bt_args)->log_file, 0x00, FILE_NAME_MAX);
 
-    // null bt_info pointer, should be set once torrent file is read
-    bt_args->bt_info = NULL;
+    // null out file pointers
+    (*bt_args)->f_save = NULL;
+
+    // null bt_info pointer; should be set once torrent file is read
+    (*bt_args)->bt_info = NULL;
 
     //default log file
-    strncpy(bt_args->log_file, "bt-client.log", FILE_NAME_MAX);
-    
+    strncpy( (*bt_args)->log_file, "bt_client.log", FILE_NAME_MAX );
+
     for(i = 0; i < MAX_CONNECTIONS; i++) {
-        bt_args->peers[i] = NULL; // set all peers NULL initially
+        (*bt_args)->peers[i] = NULL; // set all peers NULL initially
     }
 
-    bt_args->id = 0;	// set bt_client's id to 0
+    (*bt_args)->id = 0;	// set bt_client's id to 0
     
-    while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) {	// getopt() returns -1 after all command line arguments are parsed
+    while ((ch = getopt(argc, argv, "hb:p:s:l:vI:")) != -1) {	// getopt() returns -1 after all command line arguments are parsed
         switch (ch) {
 			case 'h':	// help 
 				usage(stdout);
 				exit(0);
 				break;
 			case 'v':	// verbose
-				bt_args->verbose = 1;
+				(*bt_args)->verbose = 1;
 				break;
 			case 's':	// save file
-				strncpy(bt_args->save_file, optarg, FILE_NAME_MAX);
+				strncpy( (*bt_args)->save_file, optarg, FILE_NAME_MAX);
 				break;
 			case 'l':	//log file
-				strncpy(bt_args->log_file, optarg, FILE_NAME_MAX);
+				strncpy( (*bt_args)->log_file, optarg, FILE_NAME_MAX);
 				break;
-			case 'p':	// peer
-				n_peers++;
-				//check if we are going to overflow
-				if (n_peers > MAX_CONNECTIONS) {
-					fprintf(stderr,"ERROR: Can only support %d initial peers", MAX_CONNECTIONS);
+			case 'b':	// bt client is in seeder mode; set up seeder
+				n_peers++;	// increment number of peers in torrent swarm
+
+				if (n_peers > MAX_CONNECTIONS) {	// cannot have more than MAX_CONNECTIONS number of peers
+					fprintf(stderr, "ERROR: Can only support %d seeders.\n", MAX_CONNECTIONS);
+					usage(stderr);
+					exit(1);
+				}
+				/* need to store 'optarg' = "IPaddr:port" to use it later to calculate its hash and 
+				 * compare it with incoming leecher's "IPaddr:port"
+				 */
+				break;
+			case 'p':	// bt client is in leecher mode
+				n_peers++;	// increment number of peers in torrent swarm
+
+				if ( n_peers > MAX_CONNECTIONS ) {	// cannot have more than MAX_CONNECTIONS number of peers
+					fprintf(stderr, "ERROR: Can only support %d seeders.\n", MAX_CONNECTIONS);
 					usage(stderr);
 					exit(1);
 				}
 
-				bt_args->peers[n_peers - 1] = malloc( sizeof(peer_t) );
-
-				// parse peers
-				__parse_peer(bt_args->peers[n_peers - 1], optarg);
+				(*bt_args)->peers[n_peers - 1] = malloc(sizeof(peer_t));	// allocate memory for the seeder, increment number of seeders
+				__parse_peer( (*bt_args)->peers[n_peers - 1], optarg );	// parse seeder information and construct seeder
 				break;
 			case 'I':
-				bt_args->id = atoi(optarg);
+				(*bt_args)->id = atoi(optarg);
 				break;
 			default:
 				fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
@@ -185,13 +197,13 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     }
 
     // copy torrent file over
-    strncpy(bt_args->torrent_file, argv[0], FILE_NAME_MAX);
+    strncpy( (*bt_args)->torrent_file, argv[0], FILE_NAME_MAX );
 
     return;
 }
 
 /**
- * parseTorrentFile(bt_args_t *bt_args) -> void
+ * parse_torrent_file(bt_args_t *bt_args) -> void
  * 
  * parse *.torrent file to populate values related to the 'info' part of of the torrent file
  *
@@ -199,7 +211,7 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
  * 
  * @return void
  */
-void parseTorrentFile(bt_args_t *bt_args) {
+void parse_torrent_file(bt_args_t **bt_args) {
 	/*
 	 * bt_args->torrent_file	// .torrent file to read from
 	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
@@ -209,9 +221,9 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
 						// ('pieces' in torrent file) */
 	
-	FILE *fp = fopen(bt_args->torrent_file, "r");	// open .torrent file specified by user in read only mode
+	FILE *fp = fopen( (*bt_args)->torrent_file, "r" );	// open .torrent file specified by user in read only mode
 	if (fp == NULL) {
-		fprintf(stderr, "ERROR: Could not read file: '%s'\n", bt_args->torrent_file);
+		fprintf(stderr, "ERROR: Could not read file: '%s'\n", (*bt_args)->torrent_file);
 		exit(1);
 	}
 	
@@ -224,18 +236,18 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	    
 		// a fair assumption made here is that a 'dictionary' can have no other but only a 'string' in its 'key' places
 	    
-		// look for 'key': "info"
-		while ( (ch = fgetc(fp)) != 'e') {	// as long as the dictionary does not end
-		    
-		    if (ch == 'i') {	// integer value found
-			while ( (ch = fgetc(fp)) != 'e' )
-			    continue;
-			ch = fgetc(fp);	// store character next to where integer ends so as to pass a 'number' value to next storeForward() call
-		    }
-		    
-		    storeForward(&ch, fp);
-		    
-		}
+			// look for 'key': "info"
+			while ( (ch = fgetc(fp)) != 'e') {	// as long as the dictionary does not end
+
+		    	if (ch == 'i') {	// integer value found
+		    		while ( (ch = fgetc(fp)) != 'e' )
+		    			continue;
+					ch = fgetc(fp);	// store character next to where integer ends so as to pass a 'number' value to next store_forward() call
+				}
+
+				store_forward(&ch, fp, bt_args);
+
+			}
 
 	    }
 	    
@@ -256,24 +268,24 @@ void parseTorrentFile(bt_args_t *bt_args) {
 	    if (ch == 'l') {
 	    
 		while ( (ch = fgetc(fp)) != 'e') {	// while the list does not end,
-		    fastForward(&ch, fp);		
+		    fast_forward(&ch, fp);		
 		}
 	    
 	    }
 	
 	    // CASE: if file starts with "string", just get past that string too (string begins with a 'number')
-	    fastForward(&ch, fp);	/* move on in the file
+	    fast_forward(&ch, fp);	/* move on in the file
 					 * NOTE: will not fast-forward in file if a "number" is not found; 
-					 * 'offset' is set to 0 in fastForward() for such a case
+					 * 'offset' is set to 0 in fast_forward() for such a case
 					 */
-	}
+		}
 
 	rewind(fp);	// set file pointer to beginning of file
 	fclose(fp);	// close file after reading from it
 }
 
 /**
- * fastForward(char *, FILE *)
+ * fast_forward(char *, FILE *)
  * 	Used to simply get past the bytes following a ':'. Getting past the bytes or characters means that we do not 
  * 	need to store any information from the file and therefore, are just moving ahead in the file.
  * 
@@ -282,13 +294,13 @@ void parseTorrentFile(bt_args_t *bt_args) {
  * 
  * @return void
  */
-void fastForward(char *c, FILE *fptr) {
+void fast_forward(char *c, FILE *fptr) {
     int num = 0;	/* temporary integer holder; 
 			 * num = 0 is also useful when offset needs to be 0 (does not fast-forward) */
     
-    finalNum = 0;	// reset static variable
+    final_num = 0;	// reset static variable
     
-    num = handleNumbers(c, fptr);
+    num = handle_numbers(c, fptr);
     
     fseek(fptr, num, SEEK_CUR);	// move file pointer ahead by length of string (num) after ':'
     
@@ -296,22 +308,22 @@ void fastForward(char *c, FILE *fptr) {
 
 /**
  * This function checks exactly which digits appear in a bencoded string before a ':' and 
- * accordingly keeps passing each digit to the constructNum() function.
+ * accordingly keeps passing each digit to the construct_num() function.
  * @param char* "the character that has the digit"
  * @param FILE* "pointer to the file being read"
  * 
  * @return int "the fully constructed natural number"
  */
-int handleNumbers(char *chr, FILE *fpr) {
+int handle_numbers(char *chr, FILE *fpr) {
     int num = 0;
     switch (*chr) {
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
 	    num = atoi(chr);	// store first digit
-	    num = constructNum(num);	// construct a natural number
+	    num = construct_num(num);	// construct a natural number
 	    while ((*chr = fgetc(fpr)) != ':') {
 			num = atoi(chr);	// more than one digit found
-			num = constructNum(num);
+			num = construct_num(num);
 	    }
 	default:
 	    break;
@@ -321,27 +333,27 @@ int handleNumbers(char *chr, FILE *fpr) {
 }
 
 /**
- * storeForward(char *, FILE *)
- * 	This function is just like fastForward() except that instead of moving the file pointer ahead without storing any 
- * file contents, storeForward() stores strings found in the 'info' dictionary into a temporary buffer.
+ * store_forward(char *, FILE *)
+ * 	This function is just like fast_forward() except that instead of moving the file pointer ahead without storing any 
+ * file contents, store_forward() stores strings found in the 'info' dictionary into a temporary buffer.
  * 
  * @param char* "the character last read in file"
  * @param FILE* "pointer to the file being read"
  * 
  * @return void
  */
-void storeForward(char *c, FILE *fptr) {
+void store_forward(char *c, FILE *fptr, bt_args_t **bt_args) {
     
     int num = 0;
-    finalNum = 0;	// reset static variable
+    final_num = 0;	// reset static variable
     char buffer[1024];	// temporary string holder
     switch(*c) {
 	case '4':	// if we get a '4', we hope to see an "info" string
 	    num = atoi(c);
-	    num = constructNum(num);
+	    num = construct_num(num);
 	    while ((*c = fgetc(fptr)) != ':') {
 			num = atoi(c);	// more than one digit found; no chance of "info" being in there
-			num = constructNum(num);	// still need to construct that number to fast-forward without storing anythingd
+			num = construct_num(num);	// still need to construct that number to fast-forward without storing anythingd
 	    }
 	    
 	    if (num == 4) {	/* if number is indeed the single-digit '4' and not something like '472', then
@@ -367,15 +379,15 @@ void storeForward(char *c, FILE *fptr) {
 			    				continue;
 			    			break;
 			    		default:
-							num = handleNumbers(c, fptr);	// string encountered
+							num = handle_numbers(c, fptr);	// string encountered
 							break;
 					}
 				} else {	// case where a dictionary follows after 'info'
 
 					while ( (*c = fgetc(fptr)) != 'e' ) {	// read through the whole 'info' dictionary until it ends
 
-						finalNum = 0;
-						num = handleNumbers(c, fptr);
+						final_num = 0;
+						num = handle_numbers(c, fptr);
 			    		memset(buffer, 0, sizeof(buffer));	// flush buffer
 			    
 			    		for (i = 0; i < num; i++) {	// store each dictionary 'key'
@@ -383,7 +395,7 @@ void storeForward(char *c, FILE *fptr) {
 			    			buffer[i] = *c;
 						}
 
-			    		handleInfoContents(buffer, c, fptr);	// check value of each dictionary 'key' to set values in bt_info structure accordingly
+			    		handle_info_contents(buffer, c, fptr, bt_args);	// check value of each dictionary 'key' to set values in bt_info structure accordingly
 					}
 			
 					num = 0;	// set num to 0, as we do not need a file offset in this case
@@ -393,7 +405,7 @@ void storeForward(char *c, FILE *fptr) {
 	    break;
 	case '0': case '1': case '2': case '3': 
 	case '5': case '6': case '7': case '8': case '9':	// handle other irrelevant cases
-	    num = handleNumbers(c, fptr);
+	    num = handle_numbers(c, fptr);
 	    break;
 	default:
 	    break;
@@ -412,35 +424,39 @@ void storeForward(char *c, FILE *fptr) {
  *
  * @return void
  */
-void handleInfoContents(char *buf, char *chr, FILE *fpr) {
+void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) {
 
     char holder[1024];	// another temporary string-holder
     int number = 0;
-    finalNum = 0;	// reset static 'finalNum'
+    final_num = 0;	// reset static 'final_num'
     int i;	// loop iterator variable
 
-    bt_info_t *bt_info = malloc( sizeof(bt_info_t) );	// allocate memory for bt_info structure
-        
+    (*bt_args)->bt_info = NULL;
+    (*bt_args)->bt_info = (bt_info_t *) malloc( sizeof(bt_info_t) );	// allocate memory for bt_info structure
+
+    // null 'name' array of bt_info structure initially
+    memset( (*bt_args)->bt_info->name, 0x00, FILE_NAME_MAX );
+
     if ( strcmp(buf, "length") == 0 ) {	// look to store length of file in bt_args's bt_info structure
 	
     	if ( (*chr = fgetc(fpr)) == 'i' ) {	// look for integer value only
 
     		while ( (*chr = fgetc(fpr)) != 'e' ) {
     			number = atoi(chr);
-    			number = constructNum(number);
+    			number = construct_num(number);
     		}
-    		bt_info->length = number;
-    		printf("Size or length of file to be downloaded : %d bytes\n", bt_info->length);
+    		(*bt_args)->bt_info->length = number;
+    		printf("Size or length of file to be downloaded: %d bytes\n", (*bt_args)->bt_info->length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
     		exit(1);
     	}
-	
+
     } else if ( strcmp(buf, "name") == 0 ) {	// look to store suggested name for storing the torrent file
 
 		*chr = fgetc(fpr);	// push to next character after buffer read
-		number = handleNumbers(chr, fpr);
+		number = handle_numbers(chr, fpr);
 
 		memset(holder, 0, 1024);	// zero-out string-holder
 		for (i = 0; i < number; i++) {
@@ -449,15 +465,15 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
 		}
 		holder[number] = '\0';	// null-terminate the string
 
-		memcpy( bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
-		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
+		memcpy( (*bt_args)->bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
+		printf("Suggested filename to save torrent as: '%s'\n", (*bt_args)->bt_info->name);
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
     	if ( (*chr = fgetc(fpr)) == 'i' ) {	// look for integer only
     		while ( (*chr = fgetc(fpr)) != 'e' ) {
     			number = atoi(chr);
-    			number = constructNum(number);
+    			number = construct_num(number);
     		}
 
 		    // need to check if 'number' is indeed a power of 2
@@ -470,8 +486,8 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
     			exit(1);
     		}
 
-    		bt_info->piece_length = number;
-    		printf("Size of a piece of the file: %d bytes\n", bt_info->piece_length);
+    		(*bt_args)->bt_info->piece_length = number;
+    		printf("Size of a piece of the file: %d bytes\n", (*bt_args)->bt_info->piece_length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
@@ -481,7 +497,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
     } else if ( strcmp(buf, "pieces") == 0 ) {	// look to store the hash strings corresponding to each piece of file
 	
 		*chr = fgetc(fpr);	// push to next character after buffer read
-		number = handleNumbers(chr, fpr);	// total SHA1 bytes for all pieces together
+		number = handle_numbers(chr, fpr);	// total SHA1 bytes for all pieces together
 	
 		if ((number % 20) != 0 ) {	// check whether hash length (bytes) is a multiple of 20
 			fprintf(stderr, "ERROR: SHA1 hash length is not a multiple of 20.");
@@ -490,23 +506,24 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
 		
 		// printf("testing, number: %d\n", number);
 
-		bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
-		printf("Number of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
+		(*bt_args)->bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
+		printf("Number of pieces the file is to be divided into: %d\n", (*bt_args)->bt_info->num_pieces);
 	
 		memset(holder, 0, 1024);	// zero-out string-holder
 		
 		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes from .torrent file
-		holder[number] = '\0';	// explicitly null-terminate temporary string holder again
+		// holder[number] = '\0';	// explicitly null-terminate temporary string holder again
 		char *hexString;	// store string as hex temporarily
 
 		// printf("\ntesting, holder: %s\n", holder);
 		
-		bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
+		(*bt_args)->bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
 		int j;	// loop-iterator variable
 		hexString = malloc( 40 * sizeof(char) + 1);	// 40 bytes as each hash byte can be written as a 2-char hex value + 1 byte for null-termination
 
-		for (i = 0; i < bt_info->num_pieces; i++) {
-			bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
+		for (i = 0; i < ( (*bt_args)->bt_info->num_pieces ); i++) {
+			(*bt_args)->bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
+			memset( (*bt_args)->bt_info->piece_hashes[i], 0x00, sizeof( (*bt_args)->bt_info->piece_hashes[i]) );	// null char array initially
 						
 			memset(hexString, 0, sizeof(hexString));	// zero-out hexString
 			j = 0;
@@ -514,18 +531,13 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
 				sprintf( (hexString + 2 * j), "%02x", holder[j + 20 * i]);
 				j++;
 			}
-			hexString[40] = '\0';	// null-terminate string
+			// hexString[40] = '\0';	// null-terminate string; NULL-TERMINATOR automatically appended with use of sprintf()
 
-			printf("testing, hexString: %s\n", hexString);
-			/* kept this above 'testing' line as is before more information is known on how to handle the null-character in piece_hash segment
-			 * what is known for now is, all hell breaks loose only when memcpy/memmove/strcpy/strncpy functions are used to populate bt_info->piece_hashes
-			 */
+			// copy the 40 bytes in temporary hexString to the bt_info structure
+			memcpy( (*bt_args)->bt_info->piece_hashes[i], hexString, 40 );
+			(*bt_args)->bt_info->piece_hashes[i][40] = '\0';	// null-termination
 
-			/*memcpy( bt_info->piece_hashes[i], hexString, 40 );	// copy 80 bytes from temporary hexString into the bt_info structure
-			bt_info->piece_hashes[i][40] = '\0';	// null-termination*/
-
-			// printf("Length of hash piece[%d]: %ld\n", i, strlen(bt_info->piece_hashes[i]));
-			// printf("40-byte hex Hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
+			printf("40-byte hex hash_piece[%d]: %s\n", i, (*bt_args)->bt_info->piece_hashes[i]);
 		}
 	
     } else {
@@ -535,7 +547,7 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
 }
 
 /**
- * constructNum(int)
+ * construct_num(int)
  * 	Constructs a natural number by successively appending each digit to the previous one on successive calls and
  * 	forms a non-single digit natural number. When called only once, will return a single-digit natural number.
  * 
@@ -543,6 +555,6 @@ void handleInfoContents(char *buf, char *chr, FILE *fpr) {
  * 
  * @return int "the entire non-single digit or single digit natural number"
  */
-int constructNum(int n) {
-    return ( finalNum = (finalNum * 10 + n) );
+int construct_num(int n) {
+    return ( final_num = (final_num * 10 + n) );
 }

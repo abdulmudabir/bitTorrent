@@ -3,14 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>	//internet address library
-#include <netdb.h>
+#include <netdb.h>  // for struct hostent
 #include <sys/socket.h>
 #include <sys/types.h>
 
 #include <sys/stat.h>
 #include <arpa/inet.h>
 
-#include <openssl/sha.h>	// for hashing pieces
+#include <openssl/sha.h>	// for using SHA1() function for hashing
 
 #include "bt_lib.h"
 #include "bt_setup.h"
@@ -24,9 +24,9 @@ void calc_id(char *ip, unsigned short port, char *id) {
     int len;			// length of data
     
     /* format print to store up to 256 bytes (characters) including the terminating '\0' (null) character in 'data'.
-     * snprintf() returns the index of the char that it places '\0' at; basically returns the length of the string copied
+     * snprintf() returns the index of the char that it places the '\0' at; basically returns the length of the string copied
      */
-    len = snprintf(data, 256, "%s%u", ip, port);    // example data = localhost8000
+    len = snprintf(data, 256, "%s%u", ip, port);    // example data = localhost7000
 
     /* id is just the SHA1 of the ip and port string
      * SHA1()'s signature:
@@ -36,7 +36,6 @@ void calc_id(char *ip, unsigned short port, char *id) {
 
     return;
 }
-
 
 /**
  * init_peer(peer_t *peer, int id, char *ip, unsigned short port) -> int
@@ -53,24 +52,24 @@ int init_peer(peer_t *peer, char *id, char *ip, unsigned short port) {
         
     struct hostent *hostinfo;	// instantiate hostent struct that contains information like IP address, host name, etc.
 	
-    //set the host id and port for reference
+    // set the host id and port for reference
     memcpy(peer->id, id, ID_SIZE);  // SHA1 hash of peer IP & port is stored as peer struct's 'id'
     peer->port = port;
         
-    //get the host by name
+    // get the host by name
     if( (hostinfo = gethostbyname(ip) ) == NULL) {
         perror("gethostbyname failure, no such host?");
         herror("gethostbyname");	// prints error message associated with the current host
         exit(1);
     }
     
-    // zero out the peer's sock address before filling in its details
+    // zero out the peer's sock address structure before filling in its details
     bzero(&(peer->sockaddr), sizeof(peer->sockaddr));
             
-    //set the family to AF_INET, i.e., Internet Addressing
+    // set the family to AF_INET, i.e., Internet Addressing
     peer->sockaddr.sin_family = AF_INET;
 	
-    //copy the address from h_addr field of 'hostinfo' to the peer's socket address
+    // copy the address from h_addr field of 'hostinfo' to the peer's socket address
     bcopy( (char *) (hostinfo->h_addr), 
                 (char *) &(peer->sockaddr.sin_addr.s_addr),
                 hostinfo->h_length);
@@ -102,4 +101,27 @@ void print_peer(peer_t *peer) {
 		
         printf("\n");
     }
+}
+
+void fill_handshake_info(peer_t *peer, bt_args_t *bt_args) {
+
+    // null all handshake_info_t structure contents at first
+    memset(peer->hs_info.protocol, 0x00, sizeof(peer->hs_info.protocol));
+    memset(peer->hs_info.reserved, 0x00, sizeof(peer->hs_info.reserved));
+    memset(peer->hs_info.info_hash, 0x00, sizeof(peer->hs_info.info_hash));
+    memset(peer->hs_info.peerID, 0x00, sizeof(peer->hs_info.peerID));
+
+    char temp[20];  // temporary char array
+    sprintf(temp, "%c", 19);    // first byte is ASII character 19 (decimal)
+    strcat(temp, "BitTorrent Protocol");    // concatenate '19' byte with "BitTorrent Protocol" string
+    
+    // fill those 20-bytes as protocol information in peer's handshake information
+    strcpy( peer->hs_info.protocol, temp );   // peer->sockaddr.sin_addr.s_addr
+    printf("testing, protocol: '%s'\n", peer->hs_info.protocol);
+
+    // do not need to 'reserved bytes', so leave them as null for now
+
+    printf("testing, bt_info->name: '%s'\n", bt_args->bt_info->name);
+    // SHA1( (unsigned char *) data, len, (unsigned char *) id );
+
 }

@@ -28,18 +28,18 @@ void usage(FILE *file);
  * ERRORS: Will exit on various errors
  *
  **/
-void parse_args(bt_args_t *bt_args, int argc,  char **argv);
+void parse_args(bt_args_t **bt_args, int argc,  char **argv);
 
 /**
- * parseTorrentFile(bt_args_t *bt_args) -> void
+ * parse_torrent_file(bt_args_t *bt_args) -> void
  * 
  * parse *.torrent file to populate values related to the 'info' part of of the torrent file
  * 
  */
-void parseTorrentFile(bt_args_t *bt_args);
+void parse_torrent_file(bt_args_t **bt_args);
 
 /**
- * fastForward(char *, FILE *)
+ * fast_forward(char *, FILE *)
  * 	Used to simply get past the bytes following a ':'. Getting past the bytes or characters means that we do not 
  * 	need to store any information from the file and therefore, are just moving ahead in the file.
  * 
@@ -48,33 +48,33 @@ void parseTorrentFile(bt_args_t *bt_args);
  * 
  * @return void
  */
-void fastForward(char *, FILE *);
+void fast_forward(char *, FILE *);
 
 /**
- * storeForward(char *, FILE *)
- * 	This function is just like fastForward() except that instead of moving the file pointer ahead without storing any 
- * file contents, storeForward() stores strings found in the 'info' dictionary into a temporary buffer.
+ * store_forward(char *, FILE *)
+ * 	This function is just like fast_forward() except that instead of moving the file pointer ahead without storing any 
+ * file contents, store_forward() stores strings found in the 'info' dictionary into a temporary buffer.
  * 
  * @param char* "the character last read in file"
  * @param FILE* "pointer to the file being read"
  * 
  * @return void
  */
-void storeForward(char *, FILE *);
+void store_forward(char *, FILE *, bt_args_t **);
 
 /**
  * This function checks exactly which digits appear in a bencoded string before a ':' and 
- * accordingly keeps passing each digit to the constructNum() function.
+ * accordingly keeps passing each digit to the construct_num() function.
  * 
  * @param char* "the character that has the digit"
  * @param FILE* "pointer to the file being read"
  * 
  * @return int "the fully constructed natural number"
  */
-int handleNumbers(char *, FILE *);
+int handle_numbers(char *, FILE *);
 
 /**
- * constructNum(int)
+ * construct_num(int)
  * 	Constructs a natural number by successively appending each digit to the previous one on successive calls and
  * 	forms a non-single digit natural number. When called only once, will return a single-digit natural number.
  * 
@@ -82,7 +82,7 @@ int handleNumbers(char *, FILE *);
  * 
  * @return int "the entire non-single digit or single digit natural number"
  */
-int constructNum(int);
+int construct_num(int);
 
 /**
  * This function takes a string buffer as argument and checks whether buffer might have data that is of relevance to us as per the 'info' dictionary.
@@ -94,6 +94,6 @@ int constructNum(int);
  *
  * @return void
  */
-void handleInfoContents(char *buf, char *chr, FILE *fpr);
+void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **);
 
 #endif
