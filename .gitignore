@@ -1,2 +1,6 @@
+
+# ignore all temporary files
 *~
+
+# ignore all object files
 *.o

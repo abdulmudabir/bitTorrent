@@ -11,6 +11,7 @@ all: $(BIN)
 $(BIN): $(OBJ)
 	$(CC) $(CPFLAGS) $(LDFLAGS) -o $(OBJ) $(BIN)
 
+# need to find more info about the line below
 %.o:%.c
 	$(CC) -c $(CPFLAGS) -o $@ $<
 
