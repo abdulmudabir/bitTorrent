@@ -107,36 +107,33 @@ void __parse_peer(peer_t *peer, char *peer_st) {
  * ERRORS: Will exit on various errors
  *
  **/
-void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
+void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
     int ch;	// ch for each flag
     int n_peers = 0;	// track number of seeders in torrent swarm; peers is synonymous to seeders
     int i;	// loop iterator variable
 
-    // alllocate memory to bt_args structure
-    *bt_args = (bt_args_t *) malloc(sizeof(bt_args_t));
-
     /* set the default args */
-    (*bt_args)->verbose = 0; // no verbosity
+    bt_args->verbose = 0; // no verbosity
     
     // null save_file, log_file and torrent_file
-    memset( (*bt_args)->save_file, 0x00, FILE_NAME_MAX);
-    memset( (*bt_args)->torrent_file, 0x00, FILE_NAME_MAX);
-    memset( (*bt_args)->log_file, 0x00, FILE_NAME_MAX);
+    memset( bt_args->save_file, 0x00, FILE_NAME_MAX);
+    memset( bt_args->torrent_file, 0x00, FILE_NAME_MAX);
+    memset( bt_args->log_file, 0x00, FILE_NAME_MAX);
 
     // null out file pointers
-    (*bt_args)->f_save = NULL;
+    bt_args->f_save = NULL;
 
     // null bt_info pointer; should be set once torrent file is read
-    (*bt_args)->bt_info = NULL;
+    bt_args->bt_info = NULL;
 
     //default log file
-    strncpy( (*bt_args)->log_file, "bt_client.log", FILE_NAME_MAX );
+    strncpy( bt_args->log_file, "bt_client.log", FILE_NAME_MAX );
 
     for(i = 0; i < MAX_CONNECTIONS; i++) {
-        (*bt_args)->peers[i] = NULL; // set all peers NULL initially
+        bt_args->peers[i] = NULL; // set all peers NULL initially
     }
 
-    (*bt_args)->id = 0;	// set bt_client's id to 0
+    bt_args->id = 0;	// set bt_client's id to 0
     
     while ((ch = getopt(argc, argv, "hb:p:s:l:vI:")) != -1) {	// getopt() returns -1 after all command line arguments are parsed
         switch (ch) {
@@ -145,13 +142,13 @@ void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
 				exit(0);
 				break;
 			case 'v':	// verbose
-				(*bt_args)->verbose = 1;
+				bt_args->verbose = 1;
 				break;
 			case 's':	// save file
-				strncpy( (*bt_args)->save_file, optarg, FILE_NAME_MAX);
+				strncpy( bt_args->save_file, optarg, FILE_NAME_MAX);
 				break;
 			case 'l':	//log file
-				strncpy( (*bt_args)->log_file, optarg, FILE_NAME_MAX);
+				strncpy( bt_args->log_file, optarg, FILE_NAME_MAX);
 				break;
 			case 'b':	// bt client is in seeder mode; set up seeder
 				n_peers++;	// increment number of peers in torrent swarm
@@ -174,11 +171,11 @@ void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
 					exit(1);
 				}
 
-				(*bt_args)->peers[n_peers - 1] = malloc(sizeof(peer_t));	// allocate memory for the seeder, increment number of seeders
-				__parse_peer( (*bt_args)->peers[n_peers - 1], optarg );	// parse seeder information and construct seeder
+				bt_args->peers[n_peers - 1] = malloc(sizeof(peer_t));	// allocate memory for the seeder, increment number of seeders
+				__parse_peer( bt_args->peers[n_peers - 1], optarg );	// parse seeder information and construct seeder
 				break;
 			case 'I':
-				(*bt_args)->id = atoi(optarg);
+				bt_args->id = atoi(optarg);
 				break;
 			default:
 				fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
@@ -197,7 +194,7 @@ void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
     }
 
     // copy torrent file over
-    strncpy( (*bt_args)->torrent_file, argv[0], FILE_NAME_MAX );
+    strncpy( bt_args->torrent_file, argv[0], FILE_NAME_MAX );
 
     return;
 }
@@ -211,7 +208,7 @@ void parse_args(bt_args_t **bt_args, int argc, char *argv[]) {
  * 
  * @return void
  */
-void parse_torrent_file(bt_args_t **bt_args) {
+void parse_torrent_file(bt_args_t *bt_args, bt_info_t *bt_info) {
 	/*
 	 * bt_args->torrent_file	// .torrent file to read from
 	 * bt_args->save_file	// the filename to save to ('name' in .torrent file)
@@ -221,9 +218,9 @@ void parse_torrent_file(bt_args_t **bt_args) {
 	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
 						// ('pieces' in torrent file) */
 	
-	FILE *fp = fopen( (*bt_args)->torrent_file, "r" );	// open .torrent file specified by user in read only mode
+	FILE *fp = fopen( bt_args->torrent_file, "r" );	// open .torrent file specified by user in read only mode
 	if (fp == NULL) {
-		fprintf(stderr, "ERROR: Could not read file: '%s'\n", (*bt_args)->torrent_file);
+		fprintf(stderr, "ERROR: Could not read file: '%s'\n", bt_args->torrent_file);
 		exit(1);
 	}
 	
@@ -245,7 +242,7 @@ void parse_torrent_file(bt_args_t **bt_args) {
 					ch = fgetc(fp);	// store character next to where integer ends so as to pass a 'number' value to next store_forward() call
 				}
 
-				store_forward(&ch, fp, bt_args);
+				store_forward(&ch, fp, bt_info);
 
 			}
 
@@ -342,7 +339,7 @@ int handle_numbers(char *chr, FILE *fpr) {
  * 
  * @return void
  */
-void store_forward(char *c, FILE *fptr, bt_args_t **bt_args) {
+void store_forward(char *c, FILE *fptr, bt_info_t *bt_info) {
     
     int num = 0;
     final_num = 0;	// reset static variable
@@ -395,7 +392,7 @@ void store_forward(char *c, FILE *fptr, bt_args_t **bt_args) {
 			    			buffer[i] = *c;
 						}
 
-			    		handle_info_contents(buffer, c, fptr, bt_args);	// check value of each dictionary 'key' to set values in bt_info structure accordingly
+			    		handle_info_contents(buffer, c, fptr, bt_info);	// check value of each dictionary 'key' to set values in bt_info structure accordingly
 					}
 			
 					num = 0;	// set num to 0, as we do not need a file offset in this case
@@ -424,18 +421,17 @@ void store_forward(char *c, FILE *fptr, bt_args_t **bt_args) {
  *
  * @return void
  */
-void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) {
+void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 
     char holder[1024];	// another temporary string-holder
     int number = 0;
     final_num = 0;	// reset static 'final_num'
     int i;	// loop iterator variable
 
-    (*bt_args)->bt_info = NULL;
-    (*bt_args)->bt_info = (bt_info_t *) malloc( sizeof(bt_info_t) );	// allocate memory for bt_info structure
+    bt_info->name = malloc(FILE_NAME_MAX);
 
     // null 'name' array of bt_info structure initially
-    memset( (*bt_args)->bt_info->name, 0x00, FILE_NAME_MAX );
+    memset( bt_info->name, 0x00, FILE_NAME_MAX );
 
     if ( strcmp(buf, "length") == 0 ) {	// look to store length of file in bt_args's bt_info structure
 	
@@ -445,8 +441,8 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
     			number = atoi(chr);
     			number = construct_num(number);
     		}
-    		(*bt_args)->bt_info->length = number;
-    		printf("Size or length of file to be downloaded: %d bytes\n", (*bt_args)->bt_info->length);
+    		bt_info->length = number;
+    		printf("Size or length of file to be downloaded: %d bytes\n", bt_info->length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
@@ -464,9 +460,10 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
 			holder[i] = *chr;
 		}
 		holder[number] = '\0';	// null-terminate the string
-
-		memcpy( (*bt_args)->bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
-		printf("Suggested filename to save torrent as: '%s'\n", (*bt_args)->bt_info->name);
+		printf("test: holder, %s\n", holder);
+		memcpy( bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
+		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
+		printf("testing, address of bt_info->name: '%p'\n", &(bt_info->name));	
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
@@ -486,8 +483,8 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
     			exit(1);
     		}
 
-    		(*bt_args)->bt_info->piece_length = number;
-    		printf("Size of a piece of the file: %d bytes\n", (*bt_args)->bt_info->piece_length);
+    		bt_info->piece_length = number;
+    		printf("Size of a piece of the file: %d bytes\n", bt_info->piece_length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
@@ -506,8 +503,8 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
 		
 		// printf("testing, number: %d\n", number);
 
-		(*bt_args)->bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
-		printf("Number of pieces the file is to be divided into: %d\n", (*bt_args)->bt_info->num_pieces);
+		bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
+		printf("Number of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
 	
 		memset(holder, 0, 1024);	// zero-out string-holder
 		
@@ -517,13 +514,13 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
 
 		// printf("\ntesting, holder: %s\n", holder);
 		
-		(*bt_args)->bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
+		bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
 		int j;	// loop-iterator variable
 		hexString = malloc( 40 * sizeof(char) + 1);	// 40 bytes as each hash byte can be written as a 2-char hex value + 1 byte for null-termination
 
-		for (i = 0; i < ( (*bt_args)->bt_info->num_pieces ); i++) {
-			(*bt_args)->bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
-			memset( (*bt_args)->bt_info->piece_hashes[i], 0x00, sizeof( (*bt_args)->bt_info->piece_hashes[i]) );	// null char array initially
+		for (i = 0; i < bt_info->num_pieces; i++) {
+			bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
+			memset( bt_info->piece_hashes[i], 0x00, sizeof( bt_info->piece_hashes[i]) );	// null char array initially
 						
 			memset(hexString, 0, sizeof(hexString));	// zero-out hexString
 			j = 0;
@@ -534,10 +531,10 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **bt_args) 
 			// hexString[40] = '\0';	// null-terminate string; NULL-TERMINATOR automatically appended with use of sprintf()
 
 			// copy the 40 bytes in temporary hexString to the bt_info structure
-			memcpy( (*bt_args)->bt_info->piece_hashes[i], hexString, 40 );
-			(*bt_args)->bt_info->piece_hashes[i][40] = '\0';	// null-termination
+			memcpy( bt_info->piece_hashes[i], hexString, 40 );
+			bt_info->piece_hashes[i][40] = '\0';	// null-termination
 
-			printf("40-byte hex hash_piece[%d]: %s\n", i, (*bt_args)->bt_info->piece_hashes[i]);
+			printf("40-byte hex hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
 		}
 	
     } else {

@@ -103,7 +103,7 @@ void print_peer(peer_t *peer) {
     }
 }
 
-void fill_handshake_info(peer_t *peer, bt_args_t *bt_args) {
+void fill_handshake_info(peer_t *peer, bt_info_t *bt_info) {
 
     // null all handshake_info_t structure contents at first
     memset(peer->hs_info.protocol, 0x00, sizeof(peer->hs_info.protocol));
@@ -121,7 +121,8 @@ void fill_handshake_info(peer_t *peer, bt_args_t *bt_args) {
 
     // do not need to 'reserved bytes', so leave them as null for now
 
-    printf("testing, bt_info->name: '%s'\n", bt_args->bt_info->name);
-    // SHA1( (unsigned char *) data, len, (unsigned char *) id );
+    // printf("testing, bt_info->name: '%s'\n", bt_args->bt_info->name);
+    // calculate SHA1 of "suggested file name" specified in *.torrent file
+    // SHA1( (unsigned char *) bt_info->name, strlen(bt_info->name), (unsigned char *) peer->hs_info.info_hash );
 
 }

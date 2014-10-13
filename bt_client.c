@@ -20,38 +20,40 @@
 
 int main (int argc, char * argv[]) {
 
-    bt_args_t *bt_args = NULL; // structure to capture command-line arguments
+    bt_args_t bt_args; // structure to capture command-line arguments
+    bt_info_t *bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));   // initialize & allocate memory to bt_info struct
     int i;	// loop iterator
 
     parse_args(&bt_args, argc, argv);
 
-    if (bt_args->verbose) {	// if verbose mode is requested
+    if (bt_args.verbose) {	// if verbose mode is requested
         printf("Args:\n");
-        printf("\tverbose: %d\n", bt_args->verbose);
-        printf("\tsave_file: %s\n", bt_args->save_file);	// display name of file to save to
-        printf("\tlog_file: %s\n", bt_args->log_file);		// display name of file to log information to
-        printf("\ttorrent_file: %s\n", bt_args->torrent_file);	// metainfo or torrent file being used by bt client
+        printf("\tverbose: %d\n", bt_args.verbose);
+        printf("\tsave_file: %s\n", bt_args.save_file);	// display name of file to save to
+        printf("\tlog_file: %s\n", bt_args.log_file);		// display name of file to log information to
+        printf("\ttorrent_file: %s\n", bt_args.torrent_file);	// metainfo or torrent file being used by bt client
 
         // print information of all peers
         for (i = 0; i < MAX_CONNECTIONS; i++) {
-            if(bt_args->peers[i] != NULL)
-                print_peer(bt_args->peers[i]);
+            if(bt_args.peers[i] != NULL)
+                print_peer(bt_args.peers[i]);
             else
                 break;
         }
     }
 
     // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
-    parse_torrent_file(&bt_args);
-    printf("testing, bt_args->bt_info->name: '%s'\n", (*bt_args).bt_info->name);
-    printf("testing, bt_args->bt_info->num_pieces: %d\n", bt_args->bt_info->num_pieces);
-    printf("testing, bt_args->bt_info->piece_length: %d\n", bt_args->bt_info->piece_length);
-    printf("testing, bt_args->bt_info->length: %d\n", bt_args->bt_info->length);
+    parse_torrent_file(&bt_args, bt_info);
+    printf("testing, address of bt_info->name: '%p'\n", &(bt_info->name));
+    printf("testing, bt_args->bt_info->num_pieces: %d\n", bt_info->num_pieces);
+    printf("testing, bt_args->bt_info->piece_length: %d\n", bt_info->piece_length);
+    printf("testing, bt_args->bt_info->length: %d\n", bt_info->length);
+    printf("testing, bt_args->bt_info->name: '%s'\n", bt_info->name);
 
     // construct handshake information for each peer in swarm
     for (i = 0; i < MAX_CONNECTIONS; i++) {
-        if (bt_args->peers[i] != NULL) {
-            fill_handshake_info(bt_args->peers[i], bt_args);
+        if (bt_args.peers[i] != NULL) {
+            fill_handshake_info(bt_args.peers[i], bt_info);
         } else
             break;
     }

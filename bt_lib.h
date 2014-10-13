@@ -66,7 +66,7 @@ typedef struct peer {
  * parse .torrent file to fill contents of bt_info_t structure
  */
 typedef struct {
-    char name[FILE_NAME_MAX];   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
+    char *name;   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
     int piece_length;   // number of bytes in each piece
     int length; // length of the file to be downloaded in bytes
     int num_pieces; //number of pieces, computed based on above two values
@@ -133,7 +133,7 @@ typedef struct bt_msg {
 /*
  * function info
  */
-void fill_handshake_info(peer_t *, bt_args_t *);
+void fill_handshake_info(peer_t *, bt_info_t *);
 
 int parse_bt_info(bt_info_t *bt_info);
 

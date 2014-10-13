@@ -28,7 +28,7 @@ void usage(FILE *file);
  * ERRORS: Will exit on various errors
  *
  **/
-void parse_args(bt_args_t **bt_args, int argc,  char **argv);
+void parse_args(bt_args_t *bt_args, int argc,  char **argv);
 
 /**
  * parse_torrent_file(bt_args_t *bt_args) -> void
@@ -36,7 +36,7 @@ void parse_args(bt_args_t **bt_args, int argc,  char **argv);
  * parse *.torrent file to populate values related to the 'info' part of of the torrent file
  * 
  */
-void parse_torrent_file(bt_args_t **bt_args);
+void parse_torrent_file(bt_args_t *bt_args, bt_info_t *);
 
 /**
  * fast_forward(char *, FILE *)
@@ -60,7 +60,7 @@ void fast_forward(char *, FILE *);
  * 
  * @return void
  */
-void store_forward(char *, FILE *, bt_args_t **);
+void store_forward(char *, FILE *, bt_info_t *);
 
 /**
  * This function checks exactly which digits appear in a bencoded string before a ':' and 
@@ -94,6 +94,6 @@ int construct_num(int);
  *
  * @return void
  */
-void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_args_t **);
+void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *);
 
 #endif
