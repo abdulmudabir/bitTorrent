@@ -60,6 +60,7 @@ int main (int argc, char * argv[]) {
     }*/
 
     if (bt_args.bind == 1) {    // client needs to bind to seeder
+        printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
         init_seeder(bt_args.peers[seeder_count++]);
     }
     printf("testing, seeder_count: %d\n", seeder_count);

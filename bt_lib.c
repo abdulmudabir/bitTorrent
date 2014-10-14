@@ -157,23 +157,23 @@ void init_seeder(peer_t *peer) {
     int new_seeder_sock;    // new seeder allocated socket to exchange data with leechers
     int seeder_listen;  // check whether seeder is listening on its socket or no
     char buffer[BUF_LEN];   // a buffer of size 1024 bytes at max to read or write data
-    ssize_t bytesRead, totalBytesRead = 0;  // bytes read; total number of bytes read by seeder; ssize_t defined in <unistd.h>
+    ssize_t bytes_read, total_bytes_read = 0;  // bytes read; total number of bytes read by seeder; ssize_t defined in <unistd.h>
 
     // create seeder's listening TCP stream socket
     if ( (seeder_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0 ) {
-        fprintf(stderr, "ERROR: Seeder was unable to set up a listening socket.");
+        fprintf(stderr, "ERROR: Seeder was unable to set up a listening socket.\n");
         exit(1);
     }
 
     // bind the seeder's connection-welcoming socket to the specific port number specified in 'peer'
     if ( bind(seeder_sock, (struct sockaddr *) &peer->sockaddr, sizeof(peer->sockaddr))  < 0 ) {    // NOTE: operator '->' has precedence over '->' operator
-        fprintf(stderr, "ERROR: Seeder encountered error in binding its listening socket");
+        fprintf(stderr, "ERROR: Seeder encountered error in binding its listening socket.\n");
         exit(1);
     }
 
     // on successful seeder socket binding, seeder should listen to incoming leecher connections
     if ( (seeder_listen = listen(seeder_sock, MAX_CONNECTIONS)) < 0 ) { // set maximum number of incoming leecher connections to 5
-        fprintf(stderr, "ERROR: Seeder encountered error while trying to listen to incoming leecher connections");
+        fprintf(stderr, "ERROR: Seeder encountered error while trying to listen to incoming leecher connections.\n");
         exit(1);
     }
 
@@ -181,9 +181,23 @@ void init_seeder(peer_t *peer) {
     struct sockaddr_in leecher_info;    // to fill in all relevant leecher information
     unsigned int leecher_length = sizeof(leecher_info);
     if ( ( new_seeder_sock = accept(seeder_sock, (struct sockaddr *) &leecher_info, &leecher_length) ) < 0 ) {  // seeder sets up new socket to exchange data with leecher
-        fprintf(stderr, "ERROR: Seeder could not set up a new socket to communicate with leecher");
+        fprintf(stderr, "ERROR: Seeder could not set up a new socket to communicate with leecher.\n");
         exit(1);
     }
 
-    
+    memset(buffer, 0x00, BUF_LEN);  // zero-out buffer before using it
+
+    while ( (bytes_read = read(new_seeder_sock, buffer, BUF_LEN)) != 0 ) {  /* read data from new seeder socker into buffer;
+                                                                             * read until amount to be read is 0 i.e. until no more data is available is to read */
+        total_bytes_read += bytes_read;
+
+
+        memset(buffer, 0x00, BUF_LEN);
+    }
+
+    printf("Seeder says: %ld bytes read so far...\n", total_bytes_read);
+
+    // close seeder sockets
+    close(new_seeder_sock);
+    close(seeder_sock);
 }
