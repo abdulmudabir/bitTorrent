@@ -114,8 +114,10 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 
     /* set the default args */
     bt_args->verbose = 0; // no verbosity
+    bt_args->bind = 0;	// NOT in seeder bind mode by default
     
-    // null save_file, log_file and torrent_file
+    // null bt_args members: bind_info, save_file, log_file, torrent_file
+    memset( bt_args->bind_info, 0x00, sizeof(bt_args->bind_info) );
     memset( bt_args->save_file, 0x00, FILE_NAME_MAX);
     memset( bt_args->torrent_file, 0x00, FILE_NAME_MAX);
     memset( bt_args->log_file, 0x00, FILE_NAME_MAX);
@@ -145,10 +147,10 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 				bt_args->verbose = 1;
 				break;
 			case 's':	// save file
-				strncpy( bt_args->save_file, optarg, FILE_NAME_MAX);
+				strncpy( bt_args->save_file, optarg, FILE_NAME_MAX );
 				break;
 			case 'l':	//log file
-				strncpy( bt_args->log_file, optarg, FILE_NAME_MAX);
+				strncpy( bt_args->log_file, optarg, FILE_NAME_MAX );
 				break;
 			case 'b':	// bt client is in seeder mode; set up seeder
 				n_peers++;	// increment number of peers in torrent swarm
@@ -158,9 +160,8 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 					usage(stderr);
 					exit(1);
 				}
-				/* need to store 'optarg' = "IPaddr:port" to use it later to calculate its hash and 
-				 * compare it with incoming leecher's "IPaddr:port"
-				 */
+				bt_args->bind = 1;	// seeder flag ON
+				snprintf(bt_args->bind_info, 256, "%s", optarg);	// copy "IPaddr:port" string into bt_args struct
 				break;
 			case 'p':	// bt client is in leecher mode
 				n_peers++;	// increment number of peers in torrent swarm
@@ -428,8 +429,6 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
     final_num = 0;	// reset static 'final_num'
     int i;	// loop iterator variable
 
-    bt_info->name = malloc(FILE_NAME_MAX);
-
     // null 'name' array of bt_info structure initially
     memset( bt_info->name, 0x00, FILE_NAME_MAX );
 
@@ -460,10 +459,9 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 			holder[i] = *chr;
 		}
 		holder[number] = '\0';	// null-terminate the string
-		printf("test: holder, %s\n", holder);
+
 		memcpy( bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
 		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
-		printf("testing, address of bt_info->name: '%p'\n", &(bt_info->name));	
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
@@ -506,35 +504,33 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 		bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
 		printf("Number of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
 	
-		memset(holder, 0, 1024);	// zero-out string-holder
+		memset(holder, 0x00, 1024);	// zero-out string-holder
 		
 		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes from .torrent file
 		// holder[number] = '\0';	// explicitly null-terminate temporary string holder again
-		char *hexString;	// store string as hex temporarily
 
-		// printf("\ntesting, holder: %s\n", holder);
-		
-		bt_info->piece_hashes = (char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
-		int j;	// loop-iterator variable
-		hexString = malloc( 40 * sizeof(char) + 1);	// 40 bytes as each hash byte can be written as a 2-char hex value + 1 byte for null-termination
+		bt_info->piece_hashes = (unsigned char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
 
+		unsigned char tempString[20];
+		int j;
 		for (i = 0; i < bt_info->num_pieces; i++) {
-			bt_info->piece_hashes[i] = (char *) malloc( (40 * sizeof(char) + 1) );	// allocate memory for each piece_hash
-			memset( bt_info->piece_hashes[i], 0x00, sizeof( bt_info->piece_hashes[i]) );	// null char array initially
-						
-			memset(hexString, 0, sizeof(hexString));	// zero-out hexString
+			bt_info->piece_hashes[i] = (unsigned char *) malloc(41);	// 20 + 1 extra byte for null-character
+			memset(bt_info->piece_hashes[i], 0x00, 41);	// null each hash piece initially
+
+			memset(tempString, 0x00, 20);
 			j = 0;
 			while (j < 20) {
-				sprintf( (hexString + 2 * j), "%02x", holder[j + 20 * i]);
+				tempString[j] = (unsigned char) holder[j + 20 * i];
 				j++;
 			}
-			// hexString[40] = '\0';	// null-terminate string; NULL-TERMINATOR automatically appended with use of sprintf()
 
-			// copy the 40 bytes in temporary hexString to the bt_info structure
-			memcpy( bt_info->piece_hashes[i], hexString, 40 );
-			bt_info->piece_hashes[i][40] = '\0';	// null-termination
+			j = 0;
+			while (j < 20) {
+				snprintf( (char *) &(bt_info->piece_hashes[i][j * 2]), 41, "%02x", tempString[j]);
+				j++;
+			}
 
-			printf("40-byte hex hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
+			printf("40-byte unsigned char hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
 		}
 	
     } else {

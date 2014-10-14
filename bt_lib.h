@@ -66,16 +66,18 @@ typedef struct peer {
  * parse .torrent file to fill contents of bt_info_t structure
  */
 typedef struct {
-    char *name;   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
+    char name[FILE_NAME_MAX];   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
     int piece_length;   // number of bytes in each piece
     int length; // length of the file to be downloaded in bytes
     int num_pieces; //number of pieces, computed based on above two values
-    char **piece_hashes;    // pointer to 20 byte data buffers containing the sha1sum of each of the pieces
+    unsigned char **piece_hashes;    // pointer to 20 byte data buffers containing the sha1sum of each of the pieces
 } bt_info_t;
 
 // holds all the arguments and state information for running the bt client
 typedef struct {
     int verbose; // verbose level
+    int bind;   // to indicate whether bt_client needs to bind to seeder
+    char bind_info[256];    // stores "IPaddr:port" string entered after '-b' flag
     char save_file[FILE_NAME_MAX]; // the filename to save to
     FILE *f_save;
     char log_file[FILE_NAME_MAX]; //thise log file
@@ -131,11 +133,14 @@ typedef struct bt_msg {
 } bt_msg_t;
 
 /*
- * function info
+ * init_seeder() documentation TO DO
+ */
+void init_seeder(peer_t *);
+
+/*
+ * fill_handshake_info() documentation TO DO
  */
 void fill_handshake_info(peer_t *, bt_info_t *);
-
-int parse_bt_info(bt_info_t *bt_info);
 
 /* choose a random id for this node */
 unsigned int select_id();

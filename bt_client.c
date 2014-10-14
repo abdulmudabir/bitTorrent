@@ -18,10 +18,11 @@
 #include "bt_lib.h"
 #include "bt_setup.h"
 
+static int seeder_count;    // track number of seeders; scope: private to bt_client.c
+
 int main (int argc, char * argv[]) {
 
     bt_args_t bt_args; // structure to capture command-line arguments
-    bt_info_t *bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));   // initialize & allocate memory to bt_info struct
     int i;	// loop iterator
 
     parse_args(&bt_args, argc, argv);
@@ -42,21 +43,26 @@ int main (int argc, char * argv[]) {
         }
     }
 
-    // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
-    parse_torrent_file(&bt_args, bt_info);
-    printf("testing, address of bt_info->name: '%p'\n", &(bt_info->name));
-    printf("testing, bt_args->bt_info->num_pieces: %d\n", bt_info->num_pieces);
-    printf("testing, bt_args->bt_info->piece_length: %d\n", bt_info->piece_length);
-    printf("testing, bt_args->bt_info->length: %d\n", bt_info->length);
-    printf("testing, bt_args->bt_info->name: '%s'\n", bt_info->name);
+    // initialize & allocate memory to bt_info struct that's inside bt_args
+    bt_args.bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));
 
-    // construct handshake information for each peer in swarm
+    // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
+    parse_torrent_file(&bt_args, bt_args.bt_info);
+    /*printf("testing, bt_args.bt_info->name: '%s'\n", bt_args.bt_info->name);    // FAILS
+    printf("testing, bt_args.bt_info->length: %d\n", bt_args.bt_info->length);  */
+
+/*    // construct handshake information for each peer in swarm
     for (i = 0; i < MAX_CONNECTIONS; i++) {
         if (bt_args.peers[i] != NULL) {
-            fill_handshake_info(bt_args.peers[i], bt_info);
+            fill_handshake_info(bt_args.peers[i], bt_args.bt_info);
         } else
             break;
+    }*/
+
+    if (bt_args.bind == 1) {    // client needs to bind to seeder
+        init_seeder(bt_args.peers[seeder_count++]);
     }
+    printf("testing, seeder_count: %d\n", seeder_count);
 
     // main client loop
     // printf("Starting Main Loop\n");

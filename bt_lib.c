@@ -15,6 +15,8 @@
 #include "bt_lib.h"
 #include "bt_setup.h"
 
+#define BUF_LEN 1024
+
 /**
  * calc_id() clubs the IP address and port number of peer into a single string. Then, 
  * fills the peer 'id' with a SHA1 digest computed on the clubbed string
@@ -57,7 +59,7 @@ int init_peer(peer_t *peer, char *id, char *ip, unsigned short port) {
     peer->port = port;
         
     // get the host by name
-    if( (hostinfo = gethostbyname(ip) ) == NULL) {
+    if( (hostinfo = gethostbyname(ip)) == NULL ) {
         perror("gethostbyname failure, no such host?");
         herror("gethostbyname");	// prints error message associated with the current host
         exit(1);
@@ -125,4 +127,63 @@ void fill_handshake_info(peer_t *peer, bt_info_t *bt_info) {
     // calculate SHA1 of "suggested file name" specified in *.torrent file
     // SHA1( (unsigned char *) bt_info->name, strlen(bt_info->name), (unsigned char *) peer->hs_info.info_hash );
 
+}
+
+/**
+ *
+--------------------------sockaddr structures--------------------------------------------
+struct sockaddr {
+    unsigned short    sa_family;    // address family, AF_xxx
+    char              sa_data[14];  // 14 bytes of protocol address
+};
+
+// IPv4 AF_INET sockets:
+
+struct sockaddr_in {
+    short            sin_family;   // e.g. AF_INET, AF_INET6
+    unsigned short   sin_port;     // e.g. htons(3490)
+    struct in_addr   sin_addr;     // see struct in_addr, below
+    char             sin_zero[8];  // zero this if you want to
+};
+
+struct in_addr {
+    unsigned long s_addr;          // load with inet_pton()
+};
+----------------------------------------------------------------------------------------
+ * 
+ **/
+void init_seeder(peer_t *peer) {
+    int seeder_sock;    // seeder's connection-welcoming socket to its leechers
+    int new_seeder_sock;    // new seeder allocated socket to exchange data with leechers
+    int seeder_listen;  // check whether seeder is listening on its socket or no
+    char buffer[BUF_LEN];   // a buffer of size 1024 bytes at max to read or write data
+    ssize_t bytesRead, totalBytesRead = 0;  // bytes read; total number of bytes read by seeder; ssize_t defined in <unistd.h>
+
+    // create seeder's listening TCP stream socket
+    if ( (seeder_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0 ) {
+        fprintf(stderr, "ERROR: Seeder was unable to set up a listening socket.");
+        exit(1);
+    }
+
+    // bind the seeder's connection-welcoming socket to the specific port number specified in 'peer'
+    if ( bind(seeder_sock, (struct sockaddr *) &peer->sockaddr, sizeof(peer->sockaddr))  < 0 ) {    // NOTE: operator '->' has precedence over '->' operator
+        fprintf(stderr, "ERROR: Seeder encountered error in binding its listening socket");
+        exit(1);
+    }
+
+    // on successful seeder socket binding, seeder should listen to incoming leecher connections
+    if ( (seeder_listen = listen(seeder_sock, MAX_CONNECTIONS)) < 0 ) { // set maximum number of incoming leecher connections to 5
+        fprintf(stderr, "ERROR: Seeder encountered error while trying to listen to incoming leecher connections");
+        exit(1);
+    }
+
+    // store connecting leecher's information
+    struct sockaddr_in leecher_info;    // to fill in all relevant leecher information
+    unsigned int leecher_length = sizeof(leecher_info);
+    if ( ( new_seeder_sock = accept(seeder_sock, (struct sockaddr *) &leecher_info, &leecher_length) ) < 0 ) {  // seeder sets up new socket to exchange data with leecher
+        fprintf(stderr, "ERROR: Seeder could not set up a new socket to communicate with leecher");
+        exit(1);
+    }
+
+    
 }
