@@ -105,6 +105,63 @@ void print_peer(peer_t *peer) {
     }
 }
 
+/**
+ * tokenize_seeder() documentation TO DO
+ **/
+void tokenize_seeder(bt_args_t *bt_args) {
+    char *parse_bind_str;   // temporary string
+    char *token;
+    char delim[] = ":"; // delimiter
+    char *ip;   // to store IP addr
+    char id[20];    // to store SHA1 hash into
+    unsigned short port;    // to store port
+    int i;  // loop iterator variable
+
+    // copy bt_args.bind_info to parse_bind_str to avoid losing original bt_args.bind_info
+    parse_bind_str = malloc(strlen(bt_args->bind_info) + 1);
+    memset( parse_bind_str, 0x00, (strlen(bt_args->bind_info) + 1) );   // zero-out parse_bind_str
+    strncpy(parse_bind_str, bt_args->bind_info, strlen(bt_args->bind_info));
+    printf("testing, parse_bind_str: '%s'\n", parse_bind_str);
+
+    for ( token = strtok(parse_bind_str, delim), i = 0; token; token = strtok(NULL, delim), i++ ) {
+        switch(i) {
+            case 0:
+                ip = token;
+                break;
+            case 1:
+                port = atoi(token);
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (i < 2) {    // too few arguments after '-b' flag
+        fprintf(stderr, "ERROR: Not enough values in '%s'\n", bt_args->bind_info);
+        usage(stderr);
+        exit(1);
+    }
+
+    if (token) {    // token should be NULL by this time
+        fprintf(stderr, "ERROR: Too many values in '%s'\n", bt_args->bind_info);
+        usage(stderr);
+        exit(1);
+    }
+
+    // calculate SHA1 hash of the concatenation of binding machine's IPaddr and port
+    calc_id(ip, port, id);    // calculate bt client's ID
+    printf("1. testing, id: '%s'\n", id);
+    memcpy(bt_args->id, id, 20);
+
+    printf("LISTENING on peer: %s ", bt_args->bind_info);
+    printf("; id: ");
+    for (i = 0; i < ID_SIZE; i++) {
+        printf("%02x", bt_args->id[i]);
+    }
+    printf("\n");   // line feed
+
+}
+
 void fill_handshake_info(peer_t *peer, bt_info_t *bt_info) {
 
     // null all handshake_info_t structure contents at first

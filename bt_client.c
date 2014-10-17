@@ -61,7 +61,11 @@ int main (int argc, char * argv[]) {
 
     if (bt_args.bind == 1) {    // client needs to bind to seeder
         printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
-        init_seeder(bt_args.peers[seeder_count++]);
+
+        // separate IPaddr:port from bt_args.bind_info; generate bt client's ID
+        tokenize_seeder(&bt_args);
+
+        // init_seeder(bt_args.peers[seeder_count++]);
     }
     printf("testing, seeder_count: %d\n", seeder_count);
 
@@ -70,7 +74,7 @@ int main (int argc, char * argv[]) {
     /*
 	while(1){
 
-        //try to accept incoming connection from new peer
+        // try to accept incoming connection from new peer
              
         // poll current peers for incoming traffic
         // write pieces to files

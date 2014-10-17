@@ -83,7 +83,7 @@ typedef struct {
     char log_file[FILE_NAME_MAX]; //thise log file
     char torrent_file[FILE_NAME_MAX]; // *.torrent file
     peer_t *peers[MAX_CONNECTIONS]; // array of peer_t pointers (i.e., array of seeders)
-    unsigned int id; // this bt_client's id
+    unsigned char id[ID_SIZE];  // this bt_client's id
     int sockets[MAX_CONNECTIONS]; // Array of possible sockets
     struct pollfd poll_sockets[MAX_CONNECTIONS]; /* Array of pollfd for polling for input
                           * struct pollfd {
@@ -132,9 +132,14 @@ typedef struct bt_msg {
 
 } bt_msg_t;
 
-/*
+/**
+ * tokenize_seeder() documentation TO DO
+ **/
+void tokenize_seeder(bt_args_t *);
+
+/**
  * init_seeder() documentation TO DO
- */
+ **/
 void init_seeder(peer_t *);
 
 /*

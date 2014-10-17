@@ -135,7 +135,7 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
         bt_args->peers[i] = NULL; // set all peers NULL initially
     }
 
-    bt_args->id = 0;	// set bt_client's id to 0
+    memset(bt_args->id, 0x00, ID_SIZE);	// set bt_client's id to 0
     
     while ((ch = getopt(argc, argv, "hb:p:s:l:vI:")) != -1) {	// getopt() returns -1 after all command line arguments are parsed
         switch (ch) {
@@ -153,13 +153,6 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 				strncpy( bt_args->log_file, optarg, FILE_NAME_MAX );
 				break;
 			case 'b':	// bt client is in seeder mode; set up seeder
-				n_peers++;	// increment number of peers in torrent swarm
-
-				if (n_peers > MAX_CONNECTIONS) {	// cannot have more than MAX_CONNECTIONS number of peers
-					fprintf(stderr, "ERROR: Can only support %d seeders.\n", MAX_CONNECTIONS);
-					usage(stderr);
-					exit(1);
-				}
 				bt_args->bind = 1;	// seeder flag ON
 				snprintf(bt_args->bind_info, 256, "%s", optarg);	// copy "IPaddr:port" string into bt_args struct
 				break;
@@ -175,9 +168,9 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 				bt_args->peers[n_peers - 1] = malloc(sizeof(peer_t));	// allocate memory for the seeder, increment number of seeders
 				__parse_peer( bt_args->peers[n_peers - 1], optarg );	// parse seeder information and construct seeder
 				break;
-			case 'I':
-				bt_args->id = atoi(optarg);
-				break;
+			/*case 'I':
+				strcpy(bt_args->id, optarg);
+				break;*/
 			default:
 				fprintf(stderr, "ERROR: Unknown option '-%c'\n", ch);
 				usage(stdout);
@@ -509,12 +502,12 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 		fread(holder, sizeof(char), number, fpr);	// read a chunk of 'number' bytes from .torrent file
 		// holder[number] = '\0';	// explicitly null-terminate temporary string holder again
 
-		bt_info->piece_hashes = (unsigned char **) malloc( sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
+		bt_info->piece_hashes = malloc( bt_info->num_pieces * sizeof(char *) );	// allocate memory to 'pointer to pointer' (array of char arrays)
 
 		unsigned char tempString[20];
 		int j;
 		for (i = 0; i < bt_info->num_pieces; i++) {
-			bt_info->piece_hashes[i] = (unsigned char *) malloc(41);	// 20 + 1 extra byte for null-character
+			bt_info->piece_hashes[i] = malloc(41);	// 40 + 1 extra byte for null-character
 			memset(bt_info->piece_hashes[i], 0x00, 41);	// null each hash piece initially
 
 			memset(tempString, 0x00, 20);
