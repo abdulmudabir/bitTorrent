@@ -74,7 +74,7 @@ int init_peer(peer_t *peer, char *id, char *ip, unsigned short port) {
     // copy the address from h_addr field of 'hostinfo' to the peer's socket address
     bcopy( (char *) (hostinfo->h_addr), 
                 (char *) &(peer->sockaddr.sin_addr.s_addr),
-                hostinfo->h_length);
+                hostinfo->h_length );
         
     // encode the port to network-byte order to store in sockaddr_in struct
     peer->sockaddr.sin_port = htons(port);
@@ -150,15 +150,7 @@ void tokenize_seeder(bt_args_t *bt_args) {
 
     // calculate SHA1 hash of the concatenation of binding machine's IPaddr and port
     calc_id(ip, port, id);    // calculate bt client's ID
-    printf("1. testing, id: '%s'\n", id);
     memcpy(bt_args->id, id, 20);
-
-    printf("LISTENING on peer: %s ", bt_args->bind_info);
-    printf("; id: ");
-    for (i = 0; i < ID_SIZE; i++) {
-        printf("%02x", bt_args->id[i]);
-    }
-    printf("\n");   // line feed
 
 }
 

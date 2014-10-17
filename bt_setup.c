@@ -165,8 +165,11 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 					exit(1);
 				}
 
-				bt_args->peers[n_peers - 1] = malloc(sizeof(peer_t));	// allocate memory for the seeder, increment number of seeders
-				__parse_peer( bt_args->peers[n_peers - 1], optarg );	// parse seeder information and construct seeder
+				/* construct peer; add peer to the torrent swarm */
+				bt_args->peers[n_peers - 1] = malloc(sizeof(peer_t));
+				__parse_peer( bt_args->peers[n_peers - 1], optarg );	// parse seeder information
+				init_leecher( bt_args->peers[n_peers - 1]); 
+				(bt_args->peers[n_peers - 1], bt_args);	// add peer to the swarm
 				break;
 			/*case 'I':
 				strcpy(bt_args->id, optarg);

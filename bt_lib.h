@@ -58,6 +58,7 @@ typedef struct peer {
     unsigned short port;    // the port to connect
     struct sockaddr_in sockaddr;    // sockaddr for peer
     handshake_info_t hs_info;   // every peer should have its handshake information for TCP handshakes
+    int peer_sock;  // socket used for connections
     int choked; // peer choked?
     int interested; // peer interested?
 } peer_t;
@@ -127,7 +128,7 @@ typedef struct bt_msg {
         bt_piece_t piece; // a piece message
         bt_request_t request; // request messge
         bt_request_t cancel; // cancel message, same type as request
-        char data[0]; // pointer to start of payload, just incase
+        char data[0]; // pointer to start of payload, just incase   
     } payload;
 
 } bt_msg_t;
@@ -150,7 +151,9 @@ void fill_handshake_info(peer_t *, bt_info_t *);
 /* choose a random id for this node */
 unsigned int select_id();
 
-/* propogate a peer_t struct and add it to the bt_args structure */
+/**
+ * propogate a peer_t struct and add it to the bt_args structure
+ **/
 int add_peer(peer_t *peer, bt_args_t *bt_args, char *hostname, unsigned short port);
 
 /* drop an unresponsive or failed peer from the bt_args */
