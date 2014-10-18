@@ -134,9 +134,19 @@ typedef struct bt_msg {
 } bt_msg_t;
 
 /**
+ * get_hashhex() documentation TO DO
+ **/
+void get_hashhex(unsigned char *);
+
+/**
  * init_seeder() documentation TO DO
  **/
-void init_seeder();
+void init_seeder(bt_args_t *);
+
+/**
+ * init_leecher(peer_t *, bt_args_t) documentation TO DO
+ **/
+void init_leecher(peer_t *);
 
 /**
  * seeder_listen() documentation TO DO

@@ -105,6 +105,15 @@ void print_peer(peer_t *peer) {
     }
 }
 
+void get_hashhex(unsigned char str[]) {
+
+    int i;
+    for (i = 0; i < ID_SIZE; i++) {
+            printf("%02x", str[i]);    // convert to 40-byte hex string
+    }
+
+}
+
 /**
  * init_seeder() documentation TO DO
  **/
@@ -121,7 +130,7 @@ void init_seeder(bt_args_t *bt_args) {
     parse_bind_str = malloc(strlen(bt_args->bind_info) + 1);
     memset( parse_bind_str, 0x00, (strlen(bt_args->bind_info) + 1) );   // zero-out parse_bind_str
     strncpy(parse_bind_str, bt_args->bind_info, strlen(bt_args->bind_info));
-    printf("testing, parse_bind_str: '%s'\n", parse_bind_str);
+    // printf("testing, parse_bind_str: '%s'\n", parse_bind_str);
 
     for ( token = strtok(parse_bind_str, delim), i = 0; token; token = strtok(NULL, delim), i++ ) {
         switch(i) {
@@ -156,7 +165,7 @@ void init_seeder(bt_args_t *bt_args) {
 }
 
 /**
- * int get_seeder_bind_sock(peer_t *peer) documentation TO DO
+ * int seeder_listen(char *, unsigned short, bt_args_t *) documentation TO DO
  *
 --------------------------sockaddr structures--------------------------------------------
 struct sockaddr {
@@ -242,13 +251,51 @@ void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
                                                                             // read until amount to be read is 0 i.e. until no more data is available is to read
         total_bytes_read += bytes_read;
 
-
         memset(buffer, 0x00, BUF_LEN);
     }
 
     // close seeder sockets
     close(new_seeder_sock);
     close(seeder_sock);
+}
+
+/**
+ * init_leecher() documentation TO DO
+ **/
+void init_leecher(peer_t *peer) {
+    int leecher_sock;   // to create a leecher socket to communicate with seeder
+    char buffer[BUF_LEN];    // read/write buffer
+    ssize_t bytesWritten = 0;    // track number of bytes read or written
+
+    memset(buffer, 0x00, BUF_LEN); // zero-out buffer
+
+    // create the TCP stream socket
+    if ( ( leecher_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) < 0 ) {   // non-negative socket() return value indicates failure in creating the socket
+        fprintf(stderr, "ERROR: TCP leecher socket creation failed.");
+        exit(1);
+    }
+    
+    // establish connection with leecher by calling connect on the seeder's TCP socket, sockfd
+    if ( connect( leecher_sock, (struct sockaddr *) &peer->sockaddr, sizeof(peer->sockaddr) ) < 0 ) {
+        fprintf(stderr, "ERROR: Connection could not be established to seeder id: ");
+        get_hashhex(peer->id);
+        exit(1);
+    }
+
+    printf("CONNECTION ESTABLISHED to seeder from PEER: %s:%u; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
+    get_hashhex(peer->id);
+    printf("\n");   // line feed
+
+    // send all communication from leecher to seeder hereforth
+    while ( ( bytesWritten = write(leecher_sock, buffer, strlen(buffer)) ) ) {
+        printf("testing, you are here!");
+    }
+
+    close(leecher_sock);
+    printf("CONNECTION CLOSED to seeder by PEER: %s:%u; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
+    get_hashhex(peer->id);
+    printf("\n");   // line feed
+    
 }
 
 void fill_handshake_info(peer_t *peer, bt_info_t *bt_info) {

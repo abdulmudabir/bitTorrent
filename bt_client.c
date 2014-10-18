@@ -62,9 +62,16 @@ int main (int argc, char * argv[]) {
 
         // separate IPaddr:port from string following '-b'; generate bt client's ID
         init_seeder(&bt_args);
-    } else {
+    } else {    // client creates participating peers in swarm (leecher mode)
+        for (i = 0; i < MAX_CONNECTIONS; i++) {
+            if (bt_args.peers[i] != NULL) {
+                // run a leecher instance for each peer recorded in bt_args->peers[]
+                printf("1. testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
+                init_leecher(bt_args.peers[i]);
+            } else
+                break;
+        }
 
-        
     }
 
     // main client loop
