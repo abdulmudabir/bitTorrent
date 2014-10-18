@@ -44,20 +44,11 @@
 /* size (in bytes) of id field for peers (20-byte SHA1 digest denoting peer ID) */
 #define ID_SIZE 20
 
-// holds information about TCP handshakes between peers
-typedef struct {
-    char protocol[20];
-    char reserved[8];
-    char info_hash[20];
-    char peerID[20];
-} handshake_info_t;
-
 // holds information about a peer
 typedef struct peer {
     unsigned char id[ID_SIZE];  // the peer id (SHA1 hash of peer IP & port)
     unsigned short port;    // the port to connect
     struct sockaddr_in sockaddr;    // sockaddr for peer
-    handshake_info_t hs_info;   // every peer should have its handshake information for TCP handshakes
     int peer_sock;  // socket used for connections
     int choked; // peer choked?
     int interested; // peer interested?
@@ -68,6 +59,7 @@ typedef struct peer {
  */
 typedef struct {
     char name[FILE_NAME_MAX];   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
+    unsigned char info_hash[40]; // SHA1 hash of 'name' retrieved from .torrent file
     int piece_length;   // number of bytes in each piece
     int length; // length of the file to be downloaded in bytes
     int num_pieces; //number of pieces, computed based on above two values
@@ -146,17 +138,23 @@ void init_seeder(bt_args_t *);
 /**
  * init_leecher(peer_t *, bt_args_t) documentation TO DO
  **/
-void init_leecher(peer_t *);
+int init_leecher(peer_t *);
+
 
 /**
  * seeder_listen() documentation TO DO
  **/
 void seeder_listen(char *, unsigned short, bt_args_t *);
 
-/*
- * fill_handshake_info() documentation TO DO
- */
-void fill_handshake_info(peer_t *, bt_info_t *);
+/**
+ * init_handshake() documentation TO DO
+ **/
+void init_handshake(peer_t *, int, char *, bt_info_t *);
+
+/**
+ * construct_handshake() documentation TO DO
+ **/
+void construct_handshake(char *, bt_info_t *);
 
 /* choose a random id for this node */
 unsigned int select_id();

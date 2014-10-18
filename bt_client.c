@@ -22,6 +22,9 @@ int main (int argc, char * argv[]) {
 
     bt_args_t bt_args; // structure to capture command-line arguments
     int i;	// loop iterator
+    int leecher_sock;   // leecher's connection socket
+    char *handshake;    // handshake from leecher to seeder
+    handshake = malloc(108);
 
     parse_args(&bt_args, argc, argv);
 
@@ -42,32 +45,22 @@ int main (int argc, char * argv[]) {
     }
 
     // initialize & allocate memory to bt_info struct that's inside bt_args
-    bt_args.bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));
+    bt_info_t *bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));
 
     // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
-    parse_torrent_file(&bt_args, bt_args.bt_info);
-    /*printf("testing, bt_args.bt_info->name: '%s'\n", bt_args.bt_info->name);    // FAILS
-    printf("testing, bt_args.bt_info->length: %d\n", bt_args.bt_info->length);  */
+    parse_torrent_file(&bt_args, bt_info);
 
-/*    // construct handshake information for each peer in swarm
-    for (i = 0; i < MAX_CONNECTIONS; i++) {
-        if (bt_args.peers[i] != NULL) {
-            fill_handshake_info(bt_args.peers[i], bt_args.bt_info);
-        } else
-            break;
-    }*/
-
-    if (bt_args.bind == 1) {    // client needs to bind to seeder
-        // printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
+    if (bt_args.bind == 1) {    // bt client runs in seeder mode
 
         /* separate IPaddr:port from string following '-b'; generate bt client's ID;
          * make seeder listen for incoming leecher connections */
         init_seeder(&bt_args);
-    } else {    // client creates participating peers in swarm (leecher mode)
+    } else {    // bt client runs in leecher mode
         for (i = 0; i < MAX_CONNECTIONS; i++) {
             if (bt_args.peers[i] != NULL) {
-                // run a leecher instance for each peer recorded in bt_args->peers[]
-                init_leecher(bt_args.peers[i]);
+                leecher_sock = init_leecher(bt_args.peers[i]); // run a leecher instance for each peer recorded in bt_args->peers[]
+
+                init_handshake(bt_args.peers[i], leecher_sock, handshake, bt_info);   // leecher initiates a handshake to seeder
             } else
                 break;
         }

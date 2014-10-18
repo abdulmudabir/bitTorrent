@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>			// for getopt(), optarg, optind
 #include <string.h>
+#include <openssl/sha.h>
 
 #include "bt_setup.h"
 #include "bt_lib.h"
@@ -423,9 +424,6 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
     final_num = 0;	// reset static 'final_num'
     int i;	// loop iterator variable
 
-    // null 'name' array of bt_info structure initially
-    memset( bt_info->name, 0x00, FILE_NAME_MAX );
-
     if ( strcmp(buf, "length") == 0 ) {	// look to store length of file in bt_args's bt_info structure
 	
     	if ( (*chr = fgetc(fpr)) == 'i' ) {	// look for integer value only
@@ -447,14 +445,15 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 		*chr = fgetc(fpr);	// push to next character after buffer read
 		number = handle_numbers(chr, fpr);
 
-		memset(holder, 0, 1024);	// zero-out string-holder
+		memset(holder, 0x00, 1024);	// zero-out string-holder
 		for (i = 0; i < number; i++) {
 			*chr = fgetc(fpr);
 			holder[i] = *chr;
 		}
-		holder[number] = '\0';	// null-terminate the string
+		// holder[number] = '\0';	// null-terminate the string; NO NEED TO DO THIS
 
-		memcpy( bt_info->name, holder, (number + 1) );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
+		memset(bt_info->name, 0x00, FILE_NAME_MAX);	// null 'name' char array initially
+		memcpy( bt_info->name, holder, number );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
 		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
