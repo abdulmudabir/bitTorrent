@@ -134,14 +134,14 @@ typedef struct bt_msg {
 } bt_msg_t;
 
 /**
- * tokenize_seeder() documentation TO DO
- **/
-void tokenize_seeder(bt_args_t *);
-
-/**
  * init_seeder() documentation TO DO
  **/
-void init_seeder(peer_t *);
+void init_seeder();
+
+/**
+ * seeder_listen() documentation TO DO
+ **/
+void seeder_listen(char *, unsigned short, bt_args_t *);
 
 /*
  * fill_handshake_info() documentation TO DO

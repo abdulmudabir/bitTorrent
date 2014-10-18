@@ -18,8 +18,6 @@
 #include "bt_lib.h"
 #include "bt_setup.h"
 
-static int seeder_count;    // track number of seeders; scope: private to bt_client.c
-
 int main (int argc, char * argv[]) {
 
     bt_args_t bt_args; // structure to capture command-line arguments
@@ -60,23 +58,14 @@ int main (int argc, char * argv[]) {
     }*/
 
     if (bt_args.bind == 1) {    // client needs to bind to seeder
-        printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
+        // printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
 
         // separate IPaddr:port from string following '-b'; generate bt client's ID
-        tokenize_seeder(&bt_args);
+        init_seeder(&bt_args);
+    } else {
 
-        // get a seeder's socket that'll be listening for incoming leecher connections
-        init_seeder(bt_args.peers[seeder_count++]);
         
-        printf("LISTENING on peer: %s", bt_args.bind_info);
-        printf("; id: ");
-        for (i = 0; i < ID_SIZE; i++) {
-            printf("%02x", bt_args.id[i]);
-        }
-        printf("\n");   // line feed
-
     }
-    printf("testing, seeder_count: %d\n", seeder_count);
 
     // main client loop
     // printf("Starting Main Loop\n");
