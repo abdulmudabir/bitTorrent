@@ -60,13 +60,13 @@ int main (int argc, char * argv[]) {
     if (bt_args.bind == 1) {    // client needs to bind to seeder
         // printf("testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
 
-        // separate IPaddr:port from string following '-b'; generate bt client's ID
+        /* separate IPaddr:port from string following '-b'; generate bt client's ID;
+         * make seeder listen for incoming leecher connections */
         init_seeder(&bt_args);
     } else {    // client creates participating peers in swarm (leecher mode)
         for (i = 0; i < MAX_CONNECTIONS; i++) {
             if (bt_args.peers[i] != NULL) {
                 // run a leecher instance for each peer recorded in bt_args->peers[]
-                printf("1. testing, bt_args.bind_info: '%s'\n", bt_args.bind_info);
                 init_leecher(bt_args.peers[i]);
             } else
                 break;

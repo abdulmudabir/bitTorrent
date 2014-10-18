@@ -191,7 +191,6 @@ struct in_addr {
 void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
 
     struct hostent *hostinfo;   // store network-related information of host machine
-    int i;  // loop iterator variable
 
     if( !(hostinfo = gethostbyname(ip)) ) { // gethostbyname() returns the 'hostent' structure or NULL on failure
         fprintf(stderr,"ERROR: Invalid host name '%s' specified\n", ip);
@@ -230,11 +229,12 @@ void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
         exit(1);
     }
 
-    printf("LISTENING on peer: %s", inet_ntoa(seeder_addr.sin_addr));   // print dots-and-numbers version of host
-    printf("; id: ");
-    for (i = 0; i < ID_SIZE; i++) {
+    printf("LISTENING on peer: '%s:%u'", inet_ntoa(seeder_addr.sin_addr), port);   // print dots-and-numbers version of host & its listening port
+    printf("; peer id: ");
+    get_hashhex(bt_args->id);
+    /*for (i = 0; i < ID_SIZE; i++) {
         printf("%02x", bt_args->id[i]);
-    }
+    }*/
     printf("\n");   // line feed
 
     // store connecting leecher's information
@@ -282,7 +282,7 @@ void init_leecher(peer_t *peer) {
         exit(1);
     }
 
-    printf("CONNECTION ESTABLISHED to seeder from PEER: %s:%u; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
+    printf("CONNECTION ESTABLISHED to PEER: '%s:%u'; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
     get_hashhex(peer->id);
     printf("\n");   // line feed
 
@@ -292,7 +292,7 @@ void init_leecher(peer_t *peer) {
     }
 
     close(leecher_sock);
-    printf("CONNECTION CLOSED to seeder by PEER: %s:%u; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
+    printf("CONNECTION CLOSED to PEER: '%s:%u'; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
     get_hashhex(peer->id);
     printf("\n");   // line feed
     
