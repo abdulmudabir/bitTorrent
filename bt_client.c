@@ -42,7 +42,7 @@ int main (int argc, char * argv[]) {
         }
     }
 
-    // initialize & allocate memory to bt_info struct that's inside bt_args
+    // instantiate & allocate memory to bt_info_t struct that's inside bt_args
     bt_info_t *bt_info = (bt_info_t *) malloc(sizeof(bt_info_t));
 
     // parse the torrent file to fill up contents of the bt_info structure with required information from the 'info' dictionary in .torrent file
@@ -54,6 +54,11 @@ int main (int argc, char * argv[]) {
          * get a handle on the seeder's data-exchange socket;
          * make seeder listen for incoming leecher connections */
         init_seeder(&bt_args);
+        create_bitfield(&bt_args, bt_info);
+        // printf("testing, bt_args.bitfield->bits: '%s'\n", bt_args.bitfield->bits);
+        // printf("testing, inside main, bt_args.bitfield->size: %ld\n", bt_args.bitfield->size);
+        
+        
 
     } else {    // bt client runs in leecher mode
         for (i = 0; i < MAX_CONNECTIONS; i++) {

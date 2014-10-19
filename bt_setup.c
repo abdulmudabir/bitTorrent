@@ -147,7 +147,7 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 			case 'v':	// verbose
 				bt_args->verbose = 1;
 				break;
-			case 's':	// save file
+			case 's':	// the file that seeder has
 				strncpy( bt_args->save_file, optarg, FILE_NAME_MAX );
 				break;
 			case 'l':	//log file

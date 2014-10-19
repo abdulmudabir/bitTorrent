@@ -388,3 +388,53 @@ void init_handshake(peer_t *peer, unsigned char *hs, bt_info_t *bt_info) {
     /************** handshake structure construction completed *****************/
 
 }
+
+void create_bitfield(bt_args_t *bt_args, bt_info_t *bt_info) {
+
+    int i;  // loop iterator variable
+
+    FILE *fp = fopen(bt_info->name, "rb"); // say open file 'download.mp3'
+    if (!fp) {
+        fprintf(stderr, "ERROR: Could not open target torrent file: %s\n", bt_info->name);
+        exit(1);
+    }
+
+    long int file_offset = bt_info->piece_length;
+    fseek(fp, 0, SEEK_END); // move file pointer to the end
+    long int f_end = ftell(fp);
+    rewind(fp); // move file pointer back to start
+    unsigned char *file_buffer = malloc( bt_info->piece_length * sizeof(char) + 1); // 1 extra byte for null-character
+    unsigned char piece_hash[bt_info->num_pieces][20];
+    unsigned char *piece_hex_hash = malloc(40);
+
+    // null all variables initially
+    memset(file_buffer, 0x00, bt_info->piece_length);
+    memset(piece_hex_hash, 0x00, 40);
+
+    // set bitfield size only as much as the number of pieces the file is divided into
+    bt_args->bitfield->size = bt_info->num_pieces;
+    // printf("testing, bt_args->bitfield->size: '%ld\n'", bt_args->bitfield->size);
+    bt_args->bitfield->bits = malloc(bt_info->num_pieces * sizeof(char));
+
+    for (i = 0; i < (int) bt_args->bitfield->size; i++) { // set each bitfield one by one
+        /* break file into known number of pieces;
+         * read each file piece and create hash of the piece */
+        fread(file_buffer, sizeof(char), file_offset, fp);
+        SHA1( file_buffer, file_offset, piece_hash[i]);
+        piece_hex_hash = get_hashhex(piece_hash[i]);
+        printf("Hex of piece_hash[%d]: '%s'\n", i, piece_hex_hash);
+        printf("Hex of bt_info->piece_hashes[%d]: '%s'\n", i, bt_info->piece_hashes[i]);
+
+        if ( memcmp(piece_hex_hash, bt_info->piece_hashes[i], 40) == 0 ) {
+            bt_args->bitfield->bits[i] = '1';
+        } else {
+            bt_args->bitfield->bits[i] = '0';
+        }
+
+        if ( i == ((int) bt_args->bitfield->size - 2) ) {
+            file_offset = f_end - ftell(fp);
+        }
+    }
+    bt_args->bitfield->bits[i] = '\0';
+    // printf("testing, bt_args->bitfield->bits: '%s'\n", bt_args->bitfield->bits);
+}
