@@ -23,8 +23,6 @@ int main (int argc, char * argv[]) {
     bt_args_t bt_args; // structure to capture command-line arguments
     int i;	// loop iterator
     int leecher_sock;   // leecher's connection socket
-    char *handshake;    // handshake from leecher to seeder
-    handshake = malloc(108);
 
     parse_args(&bt_args, argc, argv);
 
@@ -53,14 +51,26 @@ int main (int argc, char * argv[]) {
     if (bt_args.bind == 1) {    // bt client runs in seeder mode
 
         /* separate IPaddr:port from string following '-b'; generate bt client's ID;
+         * get a handle on the seeder's data-exchange socket;
          * make seeder listen for incoming leecher connections */
         init_seeder(&bt_args);
+
     } else {    // bt client runs in leecher mode
         for (i = 0; i < MAX_CONNECTIONS; i++) {
             if (bt_args.peers[i] != NULL) {
-                leecher_sock = init_leecher(bt_args.peers[i]); // run a leecher instance for each peer recorded in bt_args->peers[]
+                // write all client (leecher) code here
 
-                init_handshake(bt_args.peers[i], leecher_sock, handshake, bt_info);   // leecher initiates a handshake to seeder
+                leecher_sock = init_leecher(bt_args.peers[i]); // run a leecher instance for each peer recorded in bt_args->peers[]
+                unsigned char *handshake = malloc(100);   // 68-byte handshake information to be exchanged between peers
+                init_handshake(bt_args.peers[i], handshake, bt_info);
+                
+                // send handshake over to seeder
+                ssize_t bytes_written;
+                if ( (bytes_written = write(leecher_sock, handshake, 100)) < 0 ) {
+                    fprintf(stderr, "ERROR: Could not write to leecher socket.\n");
+                    exit(1);
+                }
+
             } else
                 break;
         }

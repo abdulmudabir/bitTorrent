@@ -59,7 +59,6 @@ typedef struct peer {
  */
 typedef struct {
     char name[FILE_NAME_MAX];   // suggested name for saving the file, grab this from the 'name' field in the 'info' dictionary in .torrent file
-    unsigned char info_hash[40]; // SHA1 hash of 'name' retrieved from .torrent file
     int piece_length;   // number of bytes in each piece
     int length; // length of the file to be downloaded in bytes
     int num_pieces; //number of pieces, computed based on above two values
@@ -128,7 +127,7 @@ typedef struct bt_msg {
 /**
  * get_hashhex() documentation TO DO
  **/
-void get_hashhex(unsigned char *);
+unsigned char * get_hashhex(unsigned char *);
 
 /**
  * init_seeder() documentation TO DO
@@ -142,19 +141,14 @@ int init_leecher(peer_t *);
 
 
 /**
- * seeder_listen() documentation TO DO
+ * make_seeder_listen() documentation TO DO
  **/
-void seeder_listen(char *, unsigned short, bt_args_t *);
+void make_seeder_listen(char *, unsigned short, bt_args_t *);
 
 /**
  * init_handshake() documentation TO DO
  **/
-void init_handshake(peer_t *, int, char *, bt_info_t *);
-
-/**
- * construct_handshake() documentation TO DO
- **/
-void construct_handshake(char *, bt_info_t *);
+void init_handshake(peer_t *, unsigned char *, bt_info_t *);
 
 /* choose a random id for this node */
 unsigned int select_id();

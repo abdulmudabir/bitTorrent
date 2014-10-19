@@ -105,13 +105,14 @@ void print_peer(peer_t *peer) {
     }
 }
 
-void get_hashhex(unsigned char str[]) {
+unsigned char * get_hashhex(unsigned char str[]) {
 
     int i;
+    static unsigned char ret_hash_hex[40];
     for (i = 0; i < ID_SIZE; i++) {
-            printf("%02x", str[i]);    // convert to 40-byte hex string
+            sprintf( (char *) &ret_hash_hex[2 * i], "%02x", str[i]);    // convert to 40-byte hex string
     }
-
+    return ret_hash_hex;
 }
 
 /**
@@ -159,13 +160,14 @@ void init_seeder(bt_args_t *bt_args) {
 
     // calculate SHA1 hash of the concatenation of binding machine's IPaddr and port
     calc_id(ip, port, id);    // calculate bt client's ID
+    // printf("testing, inside init_seeder, before putting in bt_args, id without hex: '%s'\n", id);
     memcpy(bt_args->id, id, 20);
 
-    seeder_listen(ip, port, bt_args);    /* make seeder listen to incoming leecher connections */
+    make_seeder_listen(ip, port, bt_args);    /* make seeder listen to incoming leecher connections */
 }
 
 /**
- * int seeder_listen(char *, unsigned short, bt_args_t *) documentation TO DO
+ * make_seeder_listen() documentation TO DO
  *
 --------------------------sockaddr structures--------------------------------------------
 struct sockaddr {
@@ -188,7 +190,7 @@ struct in_addr {
 ----------------------------------------------------------------------------------------
  * 
  **/
-void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
+void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
 
     struct hostent *hostinfo;   // store network-related information of host machine
 
@@ -208,8 +210,10 @@ void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
     int seeder_sock;    // seeder's connection-welcoming socket to its leechers
     int new_seeder_sock;    // new seeder allocated socket to exchange data with leechers
     int seeder_listen_status;  // check whether seeder is listening on its socket or no
-    char buffer[BUF_LEN];   // a buffer of size 1024 bytes at max to read or write data
+    unsigned char buffer[BUF_LEN];   // a buffer of size 1024 bytes at max to read or write data
     ssize_t bytes_read, total_bytes_read = 0;  // bytes read; total number of bytes read by seeder; ssize_t defined in <unistd.h>
+    int i;  // loop iterator variable
+    int drop_conn = 0;  // flag to indicate peer connection needs to be dropped
 
     // create seeder's listening TCP stream socket
     if ( (seeder_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0 ) {
@@ -230,14 +234,9 @@ void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
     }
 
     printf("LISTENING on peer: '%s:%u'", inet_ntoa(seeder_addr.sin_addr), port);   // print dots-and-numbers version of host & its listening port
-    printf("; peer id: ");
-    get_hashhex(bt_args->id);
-    /*for (i = 0; i < ID_SIZE; i++) {
-        printf("%02x", bt_args->id[i]);
-    }*/
-    printf("\n");   // line feed
+    printf("; peer id: %s\n", get_hashhex(bt_args->id));
 
-    // store connecting leecher's information
+     // store connecting leecher's information
     struct sockaddr_in leecher_info;    // to fill in all relevant leecher information
     unsigned int leecher_length = sizeof(leecher_info);
     if ( ( new_seeder_sock = accept(seeder_sock, (struct sockaddr *) &leecher_info, &leecher_length) ) < 0 ) {  // seeder sets up new socket to exchange data with leecher
@@ -247,16 +246,66 @@ void seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
 
     memset(buffer, 0x00, BUF_LEN);  // zero-out buffer before using it
 
-    while ( (bytes_read = read(new_seeder_sock, buffer, BUF_LEN)) != 0 ) {  // read data from new seeder socker into buffer;
-                                                                            // read until amount to be read is 0 i.e. until no more data is available is to read
+    while ( (bytes_read = read(new_seeder_sock, buffer, BUF_LEN)) != 0 ) {  /* read data from new seeder socker into buffer
+                                                                            * read until amount to be read is 0 i.e. until no more data is available is to read */
         total_bytes_read += bytes_read;
+        char hs_seeder[100];
+        memset(hs_seeder, 0, 100);
+        memcpy(hs_seeder, buffer, BUF_LEN);
+        printf("HANDSHAKE INFO received at SEEDER: '%s'\n", hs_seeder);
 
-        memset(buffer, 0x00, BUF_LEN);
+        // tokenize 'handshake' contents
+        char *token;
+        char delim[] = ":";
+        unsigned char leecher_peer_id[100];
+        memset(leecher_peer_id, 0, 100);
+        for ( token = strtok(hs_seeder, delim), i = 0; 
+            (token && i < 4); token = strtok(NULL, delim), i++ ) {
+            switch (i) {
+                case 0: case 1: case 2:
+                    break;
+                case 3:
+                    memcpy(leecher_peer_id, token, 20);
+                    break;
+            }
+        }
+
+        printf("\tHash of connecting leecher's peer id: '%s'\n", leecher_peer_id);
+        // printf("testing, inside seeder while, length of leecher_peer_id: %ld\n", strlen( (const char *) leecher_peer_id));
+        unsigned char hex_peer_id[100];
+        memset(hex_peer_id, 0, 100);
+        for (i = 0; i < 20; i++ ) {
+            sprintf( (char *) &hex_peer_id[2 * i], "%02x", leecher_peer_id[i] );
+        }
+        printf("\tHex value of connecting leecher's peer id: '%s'\n", hex_peer_id);
+        unsigned char *hex_btclient_id;
+        hex_btclient_id = get_hashhex(bt_args->id);
+        printf("\tHex value of BT Client's id: '%s'\n", hex_btclient_id);
+
+        // compare received peer id from leecher with bt client's id for equality
+        if ( strcmp( (const char *) hex_peer_id, (const char *) hex_btclient_id) == 0) {
+            printf("HANDSHAKE SUCCESS peer: %s port: %u id: %s\n", inet_ntoa(seeder_addr.sin_addr), port, hex_btclient_id);
+        } else
+            drop_conn = 1;
+
+        memset(buffer, 0x00, BUF_LEN);  // flush-out buffer everytime a cycle of reading from socket is completed
+
     }
 
-    // close seeder sockets
-    close(new_seeder_sock);
-    close(seeder_sock);
+    if (bytes_read < 0) {
+            fprintf(stderr, "ERROR: Could not read from seeder socket.\n");
+            exit(1);
+    }
+
+    if (drop_conn == 1) {
+        goto END;
+    }
+
+    // proceed with standard closing seeder sockets
+    printf("CLOSING SEEDER SOCKET as no more data available to read.\n");
+    END:
+        close(new_seeder_sock);
+        close(seeder_sock);
 }
 
 /**
@@ -271,20 +320,17 @@ int init_leecher(peer_t *peer) {
 
     // create the TCP stream socket
     if ( ( leecher_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) < 0 ) {   // non-negative socket() return value indicates failure in creating the socket
-        fprintf(stderr, "ERROR: TCP leecher socket creation failed.");
+        fprintf(stderr, "ERROR: TCP leecher socket creation failed.\n");
         exit(1);
     }
     
     // establish connection with leecher by calling connect on the seeder's TCP socket, sockfd
     if ( connect( leecher_sock, (struct sockaddr *) &peer->sockaddr, sizeof(peer->sockaddr) ) < 0 ) {
-        fprintf(stderr, "ERROR: Connection could not be established to seeder id: ");
-        get_hashhex(peer->id);
+        fprintf(stderr, "ERROR: Connection could not be established to seeder id: %s\n", get_hashhex(peer->id));
         exit(1);
     }
 
-    printf("CONNECTION ESTABLISHED to PEER: '%s:%u'; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
-    get_hashhex(peer->id);
-    printf("\n");   // line feed
+    printf("CONNECTION ESTABLISHED to PEER: '%s:%u'; peer id: %s\n", inet_ntoa(peer->sockaddr.sin_addr), peer->port, get_hashhex(peer->id));
 
     return leecher_sock;
 
@@ -303,20 +349,42 @@ int init_leecher(peer_t *peer) {
 /**
  * init_handshake(peer_t *) documentation TO DO
  **/
-void init_handshake(peer_t *peer, int leecher_sock, char *hs, bt_info_t *bt_info) {
-    printf("HANDSHAKE INIT to peer: %s port: %u; peer id: ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
-    get_hashhex(peer->id);
-    printf("\n");
+void init_handshake(peer_t *peer, unsigned char *hs, bt_info_t *bt_info) {
+    
+    printf("HANDSHAKE INIT to peer: %s port: %u; peer id: %s\n", inet_ntoa(peer->sockaddr.sin_addr), peer->port, get_hashhex(peer->id));
 
-    construct_handshake(hs, bt_info);
-    printf("testing, inside init_handshake, bt_info->name: '%s'\n", bt_info->name);
+    // null handshake array initially
+    memset(hs, 0, 100);
 
-}
+    // add 'protocol' information to 'handshake'
+    sprintf( (char *) hs, "%c", 19);  // store decimal '19' as first byte
+    strncat( (char *) hs, "BitTorrent Protocol", 19);
+    strncat( (char *) hs, ":", 1);   // add delimiter
+    strcat( (char *) hs, "00000000:"); // next 8 'reserved' bytes set as string containing 8 zeros
 
-void construct_handshake(char *handshake, bt_info_t *bt_info) {
-    memset(handshake, 0x00, sizeof(handshake));
-    sprintf(handshake, "%c", 19);   // copy decimal '19' in char form as first byte in handshake
-    strncat(handshake, "BitTorrent Protocol", 19);
-    // printf("testing, handshake: '%s', handshake length: %ld\n", handshake, strlen(handshake));
-    printf("testing, inside construct_handshake, bt_info->name: '%s'\n", bt_info->name);
+    /* need to calculate hash of bt_info->name that was extracted from .torrent file
+     * fill that hash string into 'handshake' */
+    char info_hash[20]; // to store hash of bt_info->name
+    memset(info_hash, 0, 20); // null hash string initially
+    SHA1( (unsigned char *) bt_info->name, strlen(bt_info->name), (unsigned char *) info_hash );   // copy hash to 'handshake'
+    // printf("testing, inside init_handshake, info_hash: '%s'\n", info_hash);
+    // printf("testing, inside init_handshake, length of info_hash: '%ld'\n", strlen(info_hash));
+    memcpy( (hs + 30), info_hash, 20);
+    strncat( (char *) hs, ":", 1);
+    // printf("testing, inside init_handshake, strlen(info_hash): %ld\n", strlen(info_hash));
+    // printf("testing, inside init_handshake, hs: '%s'\n", hs);
+
+    // store connecting peer's id (hash of 20-bytes) into handshake
+    /*printf("testing, inside init_handshake, peer->id without hex: '%s'\n", peer->id);
+    printf("testing, inside init_handshake, peer->id in hex: ");
+    int i;
+    for (i = 0; i < 20; i++ ) {
+        printf("%02x", peer->id[i]);
+    }
+    printf("\n");*/
+    memcpy( (hs + 51), peer->id, 20);
+    // printf("testing, inside init_handshake, hs: '%s'\n", hs);
+
+    /************** handshake structure construction completed *****************/
+
 }
