@@ -88,6 +88,7 @@ void __parse_peer(peer_t *peer, char *peer_st) {
     }
 
     // calculate the id (i.e. SHA1 digest), where a 20-byte value is placed in 'id' that denotes each peer id
+
     calc_id(ip, port, id);
 
     // build the peer object
@@ -150,6 +151,9 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 			case 's':	// the file that seeder has
 				strncpy( bt_args->save_file, optarg, FILE_NAME_MAX );
 				break;
+				if (bt_args->verbose) {
+					printf("Peers will download file name: '%s'.\n", bt_args->save_file);
+				}
 			case 'l':	//log file
 				strncpy( bt_args->log_file, optarg, FILE_NAME_MAX );
 				break;
@@ -169,6 +173,9 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 				/* construct peer; add peer to the torrent swarm */
 				bt_args->peers[n_peers - 1] = malloc(sizeof(peer_t));
 				__parse_peer( bt_args->peers[n_peers - 1], optarg );	// parse seeder information
+				if (bt_args->verbose) {
+					printf("Peer #%d added to swarm.\n", n_peers);
+				}
 				break;
 			/*case 'I':
 				strcpy(bt_args->id, optarg);
@@ -191,6 +198,9 @@ void parse_args(bt_args_t *bt_args, int argc, char *argv[]) {
 
     // copy torrent file over
     strncpy( bt_args->torrent_file, argv[0], FILE_NAME_MAX );
+    if (bt_args->verbose) {
+		printf("Information about file download in torrent file: '%s'\n", bt_args->torrent_file);
+	}
 
     return;
 }
@@ -214,6 +224,9 @@ void parse_torrent_file(bt_args_t *bt_args, bt_info_t *bt_info) {
 	 * bt_args->bt_info->piece_hashes	// array of char arrays (20 bytes each) representing each SHA1 hashed piece of file 
 						// ('pieces' in torrent file) */
 	
+	if (bt_args->verbose) {
+		printf("PARSING metainfo file: '%s' ...\n", bt_args->torrent_file);
+	}
 	FILE *fp = fopen( bt_args->torrent_file, "r" );	// open .torrent file specified by user in read only mode
 	if (fp == NULL) {
 		fprintf(stderr, "ERROR: Could not read file: '%s'\n", bt_args->torrent_file);
@@ -274,6 +287,9 @@ void parse_torrent_file(bt_args_t *bt_args, bt_info_t *bt_info) {
 		}
 
 	rewind(fp);	// set file pointer to beginning of file
+	if (bt_args->verbose) {
+		printf("\nPARSING of '%s' file complete.\n", bt_args->torrent_file);
+	}
 	fclose(fp);	// close file after reading from it
 }
 
@@ -433,7 +449,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
     			number = construct_num(number);
     		}
     		bt_info->length = number;
-    		printf("Size or length of file to be downloaded: %d bytes\n", bt_info->length);
+    		printf("\tSize or length of file to be downloaded: %d bytes\n", bt_info->length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'length' of file found in .torrent file");
@@ -454,7 +470,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 
 		memset(bt_info->name, 0x00, FILE_NAME_MAX);	// null 'name' char array initially
 		memcpy( bt_info->name, holder, number );	// use memcpy() instead of strncpy() so as to include 'null-terminators'in strings as well
-		printf("Suggested filename to save torrent as: '%s'\n", bt_info->name);
+		printf("\tSuggested filename to save torrent as: '%s'\n", bt_info->name);
 
     } else if ( strcmp(buf, "piece length") == 0 ) {	// look to store size (in bytes) of a piece of the torrent file
 	
@@ -475,7 +491,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
     		}
 
     		bt_info->piece_length = number;
-    		printf("Size of a piece of the file: %d bytes\n", bt_info->piece_length);
+    		printf("\tSize of a piece of the file: %d bytes\n", bt_info->piece_length);
 
     	} else  {
     		fprintf(stderr, "Unexpected value for 'piece length' found in .torrent file");
@@ -495,7 +511,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 		// printf("testing, number: %d\n", number);
 
 		bt_info->num_pieces = (number / 20);	// total number of 'pieces' of file
-		printf("Number of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
+		printf("\tNumber of pieces the file is to be divided into: %d\n", bt_info->num_pieces);
 	
 		memset(holder, 0x00, 1024);	// zero-out string-holder
 		
@@ -506,6 +522,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 
 		unsigned char tempString[20];
 		int j;
+		printf("\n");	// line-feed
 		for (i = 0; i < bt_info->num_pieces; i++) {
 			bt_info->piece_hashes[i] = malloc(41);	// 40 + 1 extra byte for null-character
 			memset(bt_info->piece_hashes[i], 0x00, 41);	// null each hash piece initially
@@ -523,7 +540,7 @@ void handle_info_contents(char *buf, char *chr, FILE *fpr, bt_info_t *bt_info) {
 				j++;
 			}
 
-			printf("40-byte unsigned char hash_piece[%d]: %s\n", i, bt_info->piece_hashes[i]);
+			printf("\t40-byte hex for piece #%d, hash_piece[%d]: %s\n", (i + 1), i, bt_info->piece_hashes[i]);
 		}
 	
     } else {

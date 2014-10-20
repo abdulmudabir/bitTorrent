@@ -27,19 +27,19 @@ int main (int argc, char * argv[]) {
     parse_args(&bt_args, argc, argv);
 
     if (bt_args.verbose) {	// if verbose mode is requested
-        printf("Args:\n");
+        printf("Args information from command line:\n");
         printf("\tverbose: %d\n", bt_args.verbose);
         printf("\tsave_file: %s\n", bt_args.save_file);	// display name of file to save to
         printf("\tlog_file: %s\n", bt_args.log_file);		// display name of file to log information to
         printf("\ttorrent_file: %s\n", bt_args.torrent_file);	// metainfo or torrent file being used by bt client
 
         // print information of all peers
-        for (i = 0; i < MAX_CONNECTIONS; i++) {
+        /*for (i = 0; i < MAX_CONNECTIONS; i++) {
             if(bt_args.peers[i] != NULL)
                 print_peer(bt_args.peers[i]);
             else
                 break;
-        }
+        }*/
     }
 
     // instantiate & allocate memory to bt_info_t struct that's inside bt_args
@@ -55,18 +55,20 @@ int main (int argc, char * argv[]) {
          * make seeder listen for incoming leecher connections */
         init_seeder(&bt_args);
         create_bitfield(&bt_args, bt_info);
+        printf("BITFIELD at SEEDER: '%s'\n", bt_args.bitfield->bits);
         // printf("testing, bt_args.bitfield->bits: '%s'\n", bt_args.bitfield->bits);
         // printf("testing, inside main, bt_args.bitfield->size: %ld\n", bt_args.bitfield->size);
-        
-        
 
     } else {    // bt client runs in leecher mode
         for (i = 0; i < MAX_CONNECTIONS; i++) {
             if (bt_args.peers[i] != NULL) {
                 // write all client (leecher) code here
 
+                if (bt_args.verbose) {
+                    printf("Creating a leecher socket...\n");
+                }
                 leecher_sock = init_leecher(bt_args.peers[i]); // run a leecher instance for each peer recorded in bt_args->peers[]
-                unsigned char *handshake = malloc(100);   // 68-byte handshake information to be exchanged between peers
+                unsigned char *handshake = malloc(100);   // handshake information to be exchanged between peers
                 init_handshake(bt_args.peers[i], handshake, bt_info);
                 
                 // send handshake over to seeder

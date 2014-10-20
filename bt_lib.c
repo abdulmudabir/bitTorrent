@@ -192,6 +192,10 @@ struct in_addr {
  **/
 void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
 
+    if (bt_args->verbose) {
+        printf("Instantiating seeder...\n");
+    }
+
     struct hostent *hostinfo;   // store network-related information of host machine
 
     if( !(hostinfo = gethostbyname(ip)) ) { // gethostbyname() returns the 'hostent' structure or NULL on failure
@@ -233,7 +237,11 @@ void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
         exit(1);
     }
 
-    printf("LISTENING on peer: '%s:%u'", inet_ntoa(seeder_addr.sin_addr), port);   // print dots-and-numbers version of host & its listening port
+    if (bt_args->verbose) {
+        printf("SEEDER successfully allocated a listener socket to listen to incoming connections from leecher/s.\n\n");
+    }
+
+    printf("SEEDER LISTENING now on peer: '%s:%u'", inet_ntoa(seeder_addr.sin_addr), port);   // print dots-and-numbers version of host & its listening port
     printf("; peer id: %s\n", get_hashhex(bt_args->id));
 
      // store connecting leecher's information
@@ -252,7 +260,7 @@ void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
         char hs_seeder[100];
         memset(hs_seeder, 0, 100);
         memcpy(hs_seeder, buffer, BUF_LEN);
-        printf("HANDSHAKE INFO received at SEEDER: '%s'\n", hs_seeder);
+        printf("HANDSHAKE INFO received from leecher at SEEDER: '%s'\n", hs_seeder);
 
         // tokenize 'handshake' contents
         char *token;
@@ -270,17 +278,23 @@ void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
             }
         }
 
-        printf("\tHash of connecting leecher's peer id: '%s'\n", leecher_peer_id);
+        if (bt_args->verbose) {
+            printf("\tHASH of CONNECTING LEECHER's peer id: '%s'\n", leecher_peer_id);
+        }
         // printf("testing, inside seeder while, length of leecher_peer_id: %ld\n", strlen( (const char *) leecher_peer_id));
         unsigned char hex_peer_id[100];
         memset(hex_peer_id, 0, 100);
         for (i = 0; i < 20; i++ ) {
             sprintf( (char *) &hex_peer_id[2 * i], "%02x", leecher_peer_id[i] );
         }
-        printf("\tHex value of connecting leecher's peer id: '%s'\n", hex_peer_id);
+        if (bt_args->verbose) {
+            printf("\tHEX value of CONNECTING LEECHER's peer id: '%s'\n", hex_peer_id);
+        }
         unsigned char *hex_btclient_id;
         hex_btclient_id = get_hashhex(bt_args->id);
-        printf("\tHex value of BT Client's id: '%s'\n", hex_btclient_id);
+        if (bt_args->verbose) {
+            printf("\tHEX value of BT Client's id: '%s'\n", hex_btclient_id);
+        }
 
         // compare received peer id from leecher with bt client's id for equality
         if ( strcmp( (const char *) hex_peer_id, (const char *) hex_btclient_id) == 0) {
@@ -293,11 +307,12 @@ void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
     }
 
     if (bytes_read < 0) {
-            fprintf(stderr, "ERROR: Could not read from seeder socket.\n");
-            exit(1);
+        fprintf(stderr, "ERROR: Could not read from seeder socket.\n");
+        exit(1);
     }
 
-    if (drop_conn == 1) {
+    if (drop_conn == 1) {   // if connecting leecher's peer id & bt client ID do not match, drop connection
+        printf("\tConnecting leecher's peer id & bt client's id do not match, connection dropped.\n");
         goto END;
     }
 
@@ -312,6 +327,7 @@ void make_seeder_listen(char *ip, unsigned short port, bt_args_t *bt_args) {
  * init_leecher() documentation TO DO
  **/
 int init_leecher(peer_t *peer) {
+
     int leecher_sock;   // to create a leecher socket to communicate with seeder
     /*char buffer[BUF_LEN];    // read/write buffer
     ssize_t bytesWritten = 0;    // track number of bytes read or written
@@ -416,14 +432,20 @@ void create_bitfield(bt_args_t *bt_args, bt_info_t *bt_info) {
     // printf("testing, bt_args->bitfield->size: '%ld\n'", bt_args->bitfield->size);
     bt_args->bitfield->bits = malloc(bt_info->num_pieces * sizeof(char));
 
+    if (bt_args->verbose) {
+        printf("Comparing hex values of pieces on record from '%s' with those calculated by splitting actual file...\n", bt_args->torrent_file);
+    }
     for (i = 0; i < (int) bt_args->bitfield->size; i++) { // set each bitfield one by one
         /* break file into known number of pieces;
          * read each file piece and create hash of the piece */
         fread(file_buffer, sizeof(char), file_offset, fp);
         SHA1( file_buffer, file_offset, piece_hash[i]);
         piece_hex_hash = get_hashhex(piece_hash[i]);
-        printf("Hex of piece_hash[%d]: '%s'\n", i, piece_hex_hash);
-        printf("Hex of bt_info->piece_hashes[%d]: '%s'\n", i, bt_info->piece_hashes[i]);
+
+        if (bt_args->verbose) {
+            printf("Hex of piece_hash[%d]: '%s'\n", i, piece_hex_hash);
+            printf("Hex of bt_info->piece_hashes[%d]: '%s'\n", i, bt_info->piece_hashes[i]);
+        }
 
         if ( memcmp(piece_hex_hash, bt_info->piece_hashes[i], 40) == 0 ) {
             bt_args->bitfield->bits[i] = '1';
@@ -435,6 +457,6 @@ void create_bitfield(bt_args_t *bt_args, bt_info_t *bt_info) {
             file_offset = f_end - ftell(fp);
         }
     }
-    bt_args->bitfield->bits[i] = '\0';
+    bt_args->bitfield->bits[i] = '\0';  // null-termination
     // printf("testing, bt_args->bitfield->bits: '%s'\n", bt_args->bitfield->bits);
 }

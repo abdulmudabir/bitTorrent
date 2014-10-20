@@ -20,6 +20,6 @@ Tasks ahead:
 * need to write a log file to summarize swarm activity; write information like handshakes among which peers, peer messages that are being exchanged, file download status, etc.
 * check default ports that seeder binds to in case port not specified with -b
 * write the 'Makefile'
-* provide a verbose mode
-* check for memory leaks with valgrind (only 1 free so far)
-* need to check docunentation for each function written coz some functions have been modified
+(V) * provide a verbose mode
+* check for memory leaks with valgrind
+* need to check documentation for each function written coz some functions have been modified
