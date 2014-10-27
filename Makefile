@@ -9,7 +9,7 @@ BIN=bt_client
 all: $(BIN)
 
 $(BIN): $(OBJ)
-	$(CC) $(CPFLAGS) $(LDFLAGS) -o $(OBJ) $(BIN)
+	$(CC) $(CPFLAGS) $(LDFLAGS) $(OBJ) -o $(BIN)
 
 # need to find more info about the line below
 %.o:%.c
