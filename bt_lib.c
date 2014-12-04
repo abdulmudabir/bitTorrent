@@ -105,6 +105,10 @@ void print_peer(peer_t *peer) {
     }
 }
 
+/*
+ * NOTE: example of how one can return address of a local variable by 
+ * changing its scope to "static"
+ */
 unsigned char * get_hashhex(unsigned char str[]) {
 
     int i;
